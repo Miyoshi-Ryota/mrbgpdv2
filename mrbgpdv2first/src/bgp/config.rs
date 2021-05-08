@@ -2,19 +2,20 @@ use crate::bgp;
 use std::{net::Ipv4Addr, str::FromStr};
 pub struct Config {
     local_as_number: bgp::AutonomousSystemNumber,
-    local_ip_address: Ipv4Addr,
+    pub local_ip_address: Ipv4Addr,
     remote_as_number: bgp::AutonomousSystemNumber,
-    remote_ip_address: Ipv4Addr,
-    mode: Mode,
+    pub remote_ip_address: Ipv4Addr,
+    pub mode: Mode,
 }
 
-enum Mode {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
     Passive,
     Active,
 }
 
 #[derive(Debug)]
-struct ModeParseError;
+pub struct ModeParseError;
 
 impl FromStr for Mode {
     type Err = ModeParseError;
