@@ -43,7 +43,8 @@ impl Peer {
             };
             tcp_connection
         } else {
-            let tcp_listener = TcpListener::bind((self.config.local_ip_address, bgp_port)).expect("port 179にbind出来ません。");
+            let tcp_listener = TcpListener::bind((self.config.local_ip_address, bgp_port))
+                .expect("port 179にbind出来ません。");
             let tcp_connection = tcp_listener.accept().map(|v| v.0).ok();
             if tcp_connection.is_some() {
                 self.event_queue.enqueue(Event::TcpConnectionConfirmed);
@@ -64,10 +65,10 @@ impl Peer {
             State::Connect => match event {
                 Event::TcpConnectionConfirmed | Event::TcpCrAcked => {
                     self.now_state = State::OpenSent;
-                },
-                _ => {},
+                }
+                _ => {}
             },
-            _ => {},
+            _ => {}
         }
     }
 }
