@@ -22,16 +22,33 @@ impl Peer {
         self.event_queue.enqueue(Event::ManualStart);
     }
 
-    pub fn next_step(&mut self) {}
+    pub fn next_step(&mut self) {
+        if let Some(event) = self.event_queue.dequeue() {
+            self.handle_event(event);
+        }
+    }
+
+    fn handle_event(&mut self, event: Event) {
+        match self.now_state {
+            State::Idle => match event {
+                Event::ManualStart => {
+                    self.now_state = State::Connect;
+                }
+                _ => {}
+            },
+            _ => (),
+        }
+    }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum State {
     Idle,
     Connect,
     OpenSent,
 }
 
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Event {
     ManualStart,
     TcpCrAcked,
