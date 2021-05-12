@@ -1,5 +1,8 @@
-mod config;
-mod event_queue;
+pub mod config;
+mod message;
 pub mod peer;
+mod queue;
+mod timer;
 
-struct AutonomousSystemNumber(u16);
+#[derive(Debug, Copy, Clone)]
+pub struct AutonomousSystemNumber(u16);
