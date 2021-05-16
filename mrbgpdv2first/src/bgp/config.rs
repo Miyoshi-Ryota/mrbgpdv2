@@ -1,5 +1,7 @@
 use crate::bgp;
 use std::{net::Ipv4Addr, str::FromStr};
+
+#[derive(Debug)]
 pub struct Config {
     pub local_as_number: bgp::AutonomousSystemNumber,
     pub local_ip_address: Ipv4Addr,
