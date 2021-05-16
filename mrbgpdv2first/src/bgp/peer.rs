@@ -179,6 +179,7 @@ enum State {
     Connect,
     OpenSent,
     OpenConfirm,
+    Established,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -271,5 +272,44 @@ mod tests {
         }
 
         assert_eq!(local_bgp_peer.now_state, State::OpenConfirm);
+    }
+
+    #[test]
+    fn peer_can_transition_to_established() {
+        init();
+        let _remote_bgp = thread::spawn(|| {
+            let remote_config: Config = "64513 127.0.0.2 64512 127.0.0.1 passive".parse().unwrap();
+            let mut remote_bgp_peer = Peer::new(remote_config);
+            remote_bgp_peer.start();
+
+            let max_steps = 50;
+            for _ in 0..max_steps {
+                remote_bgp_peer.next_step();
+                thread::sleep(time::Duration::from_secs_f32(0.1));
+                if remote_bgp_peer.now_state == State::Established {
+                    break;
+                };
+            }
+
+            assert_eq!(remote_bgp_peer.now_state, State::Established);
+        });
+
+        // 先にPassiveモード側の処理が進むことを保証する。
+        thread::sleep(time::Duration::from_secs_f32(0.5));
+
+        let local_config: Config = "64512 127.0.0.1 64513 127.0.0.2 active".parse().unwrap();
+        let mut local_bgp_peer = Peer::new(local_config);
+
+        local_bgp_peer.start();
+        let max_steps = 50;
+        for _ in 0..max_steps {
+            local_bgp_peer.next_step();
+            thread::sleep(time::Duration::from_secs_f32(0.1));
+            if local_bgp_peer.now_state == State::Established {
+                break;
+            };
+        }
+
+        assert_eq!(local_bgp_peer.now_state, State::Established);
     }
 }
