@@ -5,12 +5,14 @@ use std::{convert::TryInto, net::Ipv4Addr};
 #[derive(Debug)]
 pub enum BgpMessage {
     Open(BgpOpenMessage),
+    Keepalive(BgpKeepaliveMessage),
 }
+
 impl BgpMessage {
     pub fn serialize(&self) -> Vec<u8> {
         match self {
             BgpMessage::Open(open) => open.serialize(),
-            _ => panic!(),
+            BgpMessage::Keepalive(keepalive) => keepalive.serialize(),
         }
     }
 
@@ -18,12 +20,14 @@ impl BgpMessage {
         let bgp_type = BgpMessageType::from_type_number(bytes[18]);
         match bgp_type {
             BgpMessageType::Open => BgpMessage::Open(BgpOpenMessage::deserialize(bytes)),
+            BgpMessageType::Keepalive => BgpMessage::Keepalive(BgpKeepaliveMessage::deserialize(bytes)),
         }
     }
 
     pub fn get_type(&self) -> BgpMessageType {
         match self {
             BgpMessage::Open(_) => BgpMessageType::Open,
+            BgpMessage::Keepalive(_) => BgpMessageType::Keepalive,
         }
     }
 }
@@ -56,18 +60,21 @@ impl BgpMessageHeader {
 #[derive(Debug, Clone, Copy)]
 pub enum BgpMessageType {
     Open,
+    Keepalive,
 }
 
 impl BgpMessageType {
     fn to_type_number(&self) -> u8 {
         match self {
             BgpMessageType::Open => 1,
+            BgpMessageType::Keepalive => 4,
         }
     }
 
     fn from_type_number(type_number: u8) -> Self {
         match type_number {
             1 => BgpMessageType::Open,
+            4 => BgpMessageType::Keepalive,
             _ => panic!(),
         }
     }
@@ -145,5 +152,29 @@ impl BgpOpenMessage {
             optional_parameter_length,
             optional_parameters,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct BgpKeepaliveMessage {
+    header: BgpMessageHeader,
+}
+
+impl BgpKeepaliveMessage {
+    pub fn new() -> Self {
+        let header = BgpMessageHeader {
+            length: 19,
+            type_: BgpMessageType::Keepalive,
+        };
+        Self { header }
+    }
+
+    fn serialize(&self) -> Vec<u8> {
+        self.header.serialize()
+    }
+
+    fn deserialize(bytes: &Vec<u8>) -> Self {
+        let header = BgpMessageHeader::deserialize(&bytes[0..19].to_vec());
+        Self { header }
     }
 }

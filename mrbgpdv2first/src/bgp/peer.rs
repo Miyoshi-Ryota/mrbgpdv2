@@ -1,7 +1,4 @@
-use super::{
-    message::BgpOpenMessage,
-    queue::{EventQueue, MessageQueue},
-};
+use super::{message::{BgpKeepaliveMessage, BgpOpenMessage}, queue::{EventQueue, MessageQueue}};
 use crate::bgp::config::Config;
 use crate::bgp::config::Mode;
 use crate::bgp::message::{BgpMessage, BgpMessageHeader, BgpMessageType};
@@ -74,7 +71,10 @@ impl Peer {
         match bgp_message.get_type() {
             BgpMessageType::Open => {
                 self.event_queue.enqueue(Event::BgpOpen);
-            }
+            },
+            BgpMessageType::Keepalive => {
+                self.event_queue.enqueue(Event::Keepalive);
+            },
             _ => {}
         }
         self.message_queue.enqueue(bgp_message);
@@ -164,11 +164,19 @@ impl Peer {
             },
             State::OpenSent => match event {
                 Event::BgpOpen => {
+                    let keepalive_message = BgpKeepaliveMessage::new();
+                    self.send_bgp_message_to_remote_peer(BgpMessage::Keepalive(keepalive_message));
                     self.now_state = State::OpenConfirm;
                 }
                 _ => {}
             },
-            _ => {}
+            State::OpenConfirm => match event {
+                Event::Keepalive => {
+                    self.now_state = State::Established;
+                }
+                _ => {},
+            },
+            _ => {},
         }
     }
 }
@@ -188,6 +196,7 @@ pub enum Event {
     TcpCrAcked,
     TcpConnectionConfirmed,
     BgpOpen,
+    Keepalive,
 }
 
 #[cfg(test)]
