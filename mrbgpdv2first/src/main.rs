@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate log;
-use std::{env, thread, time};
 use mrbgpdv2first::bgp::config::Config;
 use mrbgpdv2first::bgp::peer::Peer;
+use std::{env, thread, time};
 
 fn main() {
     env_logger::init();

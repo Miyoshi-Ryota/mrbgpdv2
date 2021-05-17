@@ -20,7 +20,9 @@ impl BgpMessage {
         let bgp_type = BgpMessageType::from_type_number(bytes[18]);
         match bgp_type {
             BgpMessageType::Open => BgpMessage::Open(BgpOpenMessage::deserialize(bytes)),
-            BgpMessageType::Keepalive => BgpMessage::Keepalive(BgpKeepaliveMessage::deserialize(bytes)),
+            BgpMessageType::Keepalive => {
+                BgpMessage::Keepalive(BgpKeepaliveMessage::deserialize(bytes))
+            }
         }
     }
 

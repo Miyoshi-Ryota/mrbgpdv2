@@ -1,4 +1,7 @@
-use super::{message::{BgpKeepaliveMessage, BgpOpenMessage}, queue::{EventQueue, MessageQueue}};
+use super::{
+    message::{BgpKeepaliveMessage, BgpOpenMessage},
+    queue::{EventQueue, MessageQueue},
+};
 use crate::bgp::config::Config;
 use crate::bgp::config::Mode;
 use crate::bgp::message::{BgpMessage, BgpMessageHeader, BgpMessageType};
@@ -71,10 +74,10 @@ impl Peer {
         match bgp_message.get_type() {
             BgpMessageType::Open => {
                 self.event_queue.enqueue(Event::BgpOpen);
-            },
+            }
             BgpMessageType::Keepalive => {
                 self.event_queue.enqueue(Event::Keepalive);
-            },
+            }
             _ => {}
         }
         self.message_queue.enqueue(bgp_message);
@@ -174,9 +177,9 @@ impl Peer {
                 Event::Keepalive => {
                     self.now_state = State::Established;
                 }
-                _ => {},
+                _ => {}
             },
-            _ => {},
+            _ => {}
         }
     }
 }
