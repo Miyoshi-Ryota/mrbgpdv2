@@ -16,7 +16,7 @@ impl BgpMessage {
         }
     }
 
-    pub fn deserialize(bytes: &Vec<u8>) -> Self {
+    pub fn deserialize(bytes: &[u8]) -> Self {
         let bgp_type = BgpMessageType::from_type_number(bytes[18]);
         match bgp_type {
             BgpMessageType::Open => BgpMessage::Open(BgpOpenMessage::deserialize(bytes)),
@@ -52,7 +52,7 @@ impl BgpMessageHeader {
         bytes
     }
 
-    pub fn deserialize(bytes: &Vec<u8>) -> Self {
+    pub fn deserialize(bytes: &[u8]) -> Self {
         let length = u16::from_be_bytes(bytes[16..18].try_into().unwrap());
         let type_ = BgpMessageType::from_type_number(bytes[18]);
         Self { length, type_ }
@@ -66,7 +66,7 @@ pub enum BgpMessageType {
 }
 
 impl BgpMessageType {
-    fn to_type_number(&self) -> u8 {
+    fn to_type_number(self) -> u8 {
         match self {
             BgpMessageType::Open => 1,
             BgpMessageType::Keepalive => 4,
@@ -135,7 +135,7 @@ impl BgpOpenMessage {
         bytes
     }
 
-    fn deserialize(bytes: &Vec<u8>) -> Self {
+    fn deserialize(bytes: &[u8]) -> Self {
         let header = BgpMessageHeader::deserialize(&bytes[0..19].to_vec());
         let version = BgpVersion(bytes[19]);
         let my_autonomous_system_number =
@@ -175,7 +175,7 @@ impl BgpKeepaliveMessage {
         self.header.serialize()
     }
 
-    fn deserialize(bytes: &Vec<u8>) -> Self {
+    fn deserialize(bytes: &[u8]) -> Self {
         let header = BgpMessageHeader::deserialize(&bytes[0..19].to_vec());
         Self { header }
     }

@@ -78,7 +78,6 @@ impl Peer {
             BgpMessageType::Keepalive => {
                 self.event_queue.enqueue(Event::Keepalive);
             }
-            _ => {}
         }
         self.message_queue.enqueue(bgp_message);
     }
@@ -99,11 +98,8 @@ impl Peer {
 
     fn recieve_one_message(&mut self) -> Option<BgpMessage> {
         self.transfer_data_tcp_connection_to_self_buffer();
-        if let Some(bgp_message_byte) = self.retrive_one_message_from_buffer() {
-            Some(BgpMessage::deserialize(&bgp_message_byte))
-        } else {
-            None
-        }
+        self.retrive_one_message_from_buffer().map(
+            |bgp_message_byte| BgpMessage::deserialize(&bgp_message_byte))
     }
 
     fn create_tcp_connection_to_remote_ip(&mut self) -> Option<TcpStream> {
@@ -140,7 +136,7 @@ impl Peer {
         self.tcp_connection
             .as_ref()
             .unwrap()
-            .write(&bgp_message.serialize()[..])
+            .write_all(&bgp_message.serialize()[..])
             .expect("Failed send open message");
         info!("Send bgp message {:?}", bgp_message);
     }

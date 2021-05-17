@@ -39,7 +39,7 @@ impl FromStr for Config {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // 64512 127.0.0.1 64513 127.0.0.2 activeのようなテキストがパース対象
-        let c: Vec<&str> = s.split(" ").collect();
+        let c: Vec<&str> = s.split(' ').collect();
         let local_as_number =
             bgp::AutonomousSystemNumber(c[0].parse().expect("cannot parse local as number"));
         let local_ip_address = c[1].parse().expect("cannot parse local ip address");
