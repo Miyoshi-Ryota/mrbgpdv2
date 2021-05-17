@@ -10,6 +10,7 @@ fn main() {
     let config: Config = args[1..].join(" ").parse().unwrap();
     debug!("{:?}", config);
     let mut p = Peer::new(config);
+    p.start();
     loop {
         p.next_step();
         thread::sleep(time::Duration::from_secs_f32(0.1));
