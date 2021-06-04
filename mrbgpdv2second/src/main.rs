@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
-use mrbgpdv2first::bgp::config::Config;
-use mrbgpdv2first::bgp::peer::Peer;
+use mrbgpdv2second::bgp::config::Config;
+use mrbgpdv2second::bgp::peer::Peer;
 use std::{env, thread, time};
 
 fn main() {
