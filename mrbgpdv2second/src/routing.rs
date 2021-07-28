@@ -125,6 +125,27 @@ fn lookup_routing_table(lookup_addr: &IpPrefix) -> Vec<RoutingTableEntry> {
         .collect()
 }
 
+fn add_route_to_routing_table(entry: &RoutingTableEntry) {
+    let rt = Runtime::new().unwrap();
+    rt.block_on(async {
+        let (connection, handle, _) = new_connection().unwrap();
+        tokio::spawn(connection);
+        let route = handle.route();
+        let gateway_addr = match &entry.nexthop {
+            &Nexthop::Ipv4Addr(ip_addr) => ip_addr,
+            _ => unimplemented!(),
+        };
+        route
+            .add()
+            .v4()
+            .destination_prefix(entry.network_address.ip_addr, entry.network_address.prefix)
+            .gateway(gateway_addr)
+            .execute()
+            .await
+            .unwrap();
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
