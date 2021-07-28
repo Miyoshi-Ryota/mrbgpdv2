@@ -155,4 +155,16 @@ mod tests {
             .collect();
         assert!(difference.is_empty());
     }
+
+    #[test]
+    fn test_add_route_to_routing_table() {
+        init();
+        let entry = RoutingTableEntry::new(
+            "192.168.50.0/24".parse().unwrap(),
+            Nexthop::Ipv4Addr("10.0.2.2".parse().unwrap()),
+        );
+        add_route_to_routing_table(&entry);
+        let lookup_result = lookup_routing_table(&entry.network_address);
+        assert!(lookup_result.contains(&entry));
+    }
 }
