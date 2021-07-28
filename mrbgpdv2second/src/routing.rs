@@ -178,6 +178,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_add_route_to_routing_table() {
         init();
         let entry = RoutingTableEntry::new(
