@@ -98,8 +98,8 @@ impl Peer {
 
     fn recieve_one_message(&mut self) -> Option<BgpMessage> {
         self.transfer_data_tcp_connection_to_self_buffer();
-        self.retrive_one_message_from_buffer().map(
-            |bgp_message_byte| BgpMessage::deserialize(&bgp_message_byte))
+        self.retrive_one_message_from_buffer()
+            .map(|bgp_message_byte| BgpMessage::deserialize(&bgp_message_byte))
     }
 
     fn create_tcp_connection_to_remote_ip(&mut self) -> Option<TcpStream> {
