@@ -48,11 +48,17 @@ impl Peer {
                         Mode::Passive => self.wait_connection_from_remote_peer().await,
                     }
                     .ok();
-                    self.tcp_connection.as_ref().unwrap_or_else(|| {
+                    if self.tcp_connection.is_some() {
+                        self.event_queue.enqueue(Event::TcpConnectionConfirmed);
+                    } else {
                         panic!("TCP Connectionの確立が出来ませんでした。{:?}", self.config)
-                    });
+                    }
                     self.state = State::Connect;
                 }
+                _ => {}
+            },
+            State::Connect => match event {
+                Event::TcpConnectionConfirmed => { self.state = State::OpenSent },
                 _ => {}
             },
             _ => {}
