@@ -3,6 +3,9 @@ use crate::event::Event;
 use crate::event_queue::EventQueue;
 use crate::state::State;
 
+/// [BGPのRFCで示されている実装方針](https://datatracker.ietf.org/doc/html/rfc4271#section-8)では、
+/// 1つのPeerを1つのイベント駆動ステートマシンとして用いています。
+/// Peer構造体はRFC内で示されている実装方針に従ったイベント駆動ステートマシンです。
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct Peer {
     state: State,
