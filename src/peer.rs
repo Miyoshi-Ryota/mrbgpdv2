@@ -4,24 +4,24 @@ use crate::event_queue::EventQueue;
 use crate::state::State;
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
-struct Peer {
+pub struct Peer {
     state: State,
     event_queue: EventQueue,
     config: Config,
 }
 
 impl Peer {
-    fn new(config: Config) -> Self {
+    pub fn new(config: Config) -> Self {
         let state = State::Idle;
         let event_queue = EventQueue::new();
         Self { state, event_queue, config }
     }
 
-    fn start(&mut self) {
+    pub fn start(&mut self) {
         self.event_queue.enqueue(Event::ManualStart);
     }
 
-    async fn next(&mut self) {
+    pub async fn next(&mut self) {
         if let Some(event) = self.event_queue.dequeue() {
             self.handle_event(&event).await;
         }
