@@ -48,8 +48,9 @@ impl Peer {
                         Mode::Passive => self.wait_connection_from_remote_peer().await,
                     }
                     .ok();
-                    self.tcp_connection.as_ref().unwrap_or_else(|| panic!("TCP Connectionの確立が出来ませんでした。{:?}",
-                    self.config));
+                    self.tcp_connection.as_ref().unwrap_or_else(|| {
+                        panic!("TCP Connectionの確立が出来ませんでした。{:?}", self.config)
+                    });
                     self.state = State::Connect;
                 }
                 _ => {}
@@ -98,7 +99,6 @@ mod tests {
         let config: Config = "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
         let mut peer = Peer::new(config);
         peer.start();
-
 
         // 別スレッドでPeer構造体を実行しています。
         // これはネットワーク上で離れた別のマシンを模擬しています。
