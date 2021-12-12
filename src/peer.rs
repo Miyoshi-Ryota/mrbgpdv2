@@ -48,12 +48,23 @@ impl Peer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::time::{sleep, Duration};
 
     #[tokio::test]
     async fn peer_can_transition_to_connect_state() {
-        let config: Config = "64512 127.0.0.1 65413 127.0.0.1 active".parse().unwrap();
+        let config: Config = "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
         let mut peer = Peer::new(config);
         peer.start();
+
+        tokio::spawn(async move {
+            let remote_config = "64513 127.0.0.2 65412 127.0.0.1 passive".parse().unwrap();
+            let mut remote_peer = Peer::new(remote_config);
+            remote_peer.start();
+            remote_peer.next().await;
+        });
+
+        // 先にremote_peer側の処理が進むことを保証するためのwait
+        tokio::time::sleep(Duration::from_secs(1)).await;
         peer.next().await;
         assert_eq!(peer.state, State::Connect);
     }
