@@ -7,14 +7,14 @@ use std::str::FromStr;
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub struct Config {
     local_as: AutonomousSystemNumber,
-    local_ip: Ipv4Addr,
+    pub local_ip: Ipv4Addr,
     remote_as: AutonomousSystemNumber,
-    remote_ip: Ipv4Addr,
-    mode: Mode,
+    pub remote_ip: Ipv4Addr,
+    pub mode: Mode,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
-enum Mode {
+pub enum Mode {
     Passive,
     Active,
 }
