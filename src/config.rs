@@ -1,4 +1,4 @@
-use crate::autonomous_system_number::AutonomousSystemNumber;
+use crate::bgp_type::AutonomousSystemNumber;
 use crate::error::ConfigParseError;
 use anyhow::{Context, Result};
 use std::net::Ipv4Addr;

@@ -1,7 +1,7 @@
 #![feature(backtrace)]
 #![allow(dead_code, unused)]
 
-mod autonomous_system_number;
+mod bgp_type;
 pub mod config;
 mod error;
 mod event;
