@@ -9,3 +9,4 @@ mod event_queue;
 mod packets;
 pub mod peer;
 mod state;
+mod connection;

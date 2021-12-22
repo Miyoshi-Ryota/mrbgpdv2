@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use tokio::net::{TcpListener, TcpStream};
 
 use crate::config::{Config, Mode};
+use crate::connection::Connection;
 use crate::event::Event;
 use crate::event_queue::EventQueue;
 use crate::state::State;
@@ -13,7 +14,7 @@ use crate::state::State;
 pub struct Peer {
     state: State,
     event_queue: EventQueue,
-    tcp_connection: Option<TcpStream>,
+    tcp_connection: Option<Connection>,
     config: Config,
 }
 
@@ -43,11 +44,7 @@ impl Peer {
         match &self.state {
             State::Idle => match event {
                 Event::ManualStart => {
-                    self.tcp_connection = match self.config.mode {
-                        Mode::Active => self.connect_to_remote_peer().await,
-                        Mode::Passive => self.wait_connection_from_remote_peer().await,
-                    }
-                    .ok();
+                    self.tcp_connection = Connection::connect(&self.config).await.ok();
                     if self.tcp_connection.is_some() {
                         self.event_queue.enqueue(Event::TcpConnectionConfirmed);
                     } else {
@@ -58,41 +55,13 @@ impl Peer {
                 _ => {}
             },
             State::Connect => match event {
-                Event::TcpConnectionConfirmed => { self.state = State::OpenSent },
+                Event::TcpConnectionConfirmed => self.state = State::OpenSent,
                 _ => {}
             },
             _ => {}
         }
     }
 
-    async fn connect_to_remote_peer(&self) -> Result<TcpStream> {
-        let bgp_port = 179;
-        TcpStream::connect((self.config.remote_ip, bgp_port))
-            .await
-            .context(format!(
-                "cannot connect to remote peer {0}:{1}",
-                self.config.remote_ip, bgp_port
-            ))
-    }
-
-    async fn wait_connection_from_remote_peer(&self) -> Result<TcpStream> {
-        let bgp_port = 179;
-        let listener = TcpListener::bind((self.config.local_ip, bgp_port))
-            .await
-            .context(format!(
-                "{0}:{1}にbindすることが出来ませんでした。",
-                self.config.local_ip, bgp_port
-            ))?;
-        Ok(listener
-            .accept()
-            .await
-            .context(format!(
-                "{0}:{1}にてリモートからのTCP Connectionの要求を完遂することが出来ませんでした。
-                リモートからTCP Connectionの要求が来ていない可能性が高いです。",
-                self.config.local_ip, bgp_port
-            ))?
-            .0)
-    }
 }
 
 #[cfg(test)]
