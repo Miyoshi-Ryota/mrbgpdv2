@@ -7,6 +7,8 @@ use crate::config::{Config, Mode};
 use crate::error::CreateConnectionError;
 use crate::packets::message::Message;
 
+/// 通信に関する処理を担当する構造体です。
+/// TcpConnectionを張ったり、crate::packets::message::Messageのデータを送受信したりします。
 #[derive(Debug)]
 pub struct Connection {
     conn: TcpStream,
