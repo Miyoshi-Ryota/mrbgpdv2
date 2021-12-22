@@ -1,5 +1,8 @@
+use std::net::Ipv4Addr;
+
 use bytes::BytesMut;
 
+use crate::bgp_type::AutonomousSystemNumber;
 use crate::error::{ConvertBgpMessageToBytesError, ConvertBytesToBgpMessageError};
 use crate::packets::open::OpenMessage;
 
@@ -17,6 +20,14 @@ impl TryFrom<BytesMut> for Message {
 
 impl From<Message> for BytesMut {
     fn from(message: Message) -> BytesMut {
-        todo!();
+        match message {
+            Message::Open(open) => open.into(),
+        }
+    }
+}
+
+impl Message {
+    pub fn new_open(my_as_number: AutonomousSystemNumber, my_ip_addr: Ipv4Addr) -> Self {
+        Self::Open(OpenMessage::new(my_as_number, my_ip_addr))
     }
 }

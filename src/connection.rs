@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use bytes::{BufMut, BytesMut};
-use tokio::io::{AsyncReadExt, self};
-use tokio::net::{TcpStream, TcpListener};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, TcpStream};
 
 use crate::config::{Config, Mode};
 use crate::error::CreateConnectionError;
@@ -21,6 +21,11 @@ impl Connection {
         }?;
         let buffer = BytesMut::with_capacity(1500);
         Ok(Self { conn, buffer })
+    }
+
+    pub async fn send(&mut self, message: Message) {
+        let bytes: BytesMut = message.into();
+        self.conn.write(&bytes[..]).await;
     }
 
     async fn connect_to_remote_peer(config: &Config) -> Result<TcpStream> {

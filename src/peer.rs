@@ -5,6 +5,7 @@ use crate::config::{Config, Mode};
 use crate::connection::Connection;
 use crate::event::Event;
 use crate::event_queue::EventQueue;
+use crate::packets::message::Message;
 use crate::state::State;
 
 /// [BGPのRFCで示されている実装方針](https://datatracker.ietf.org/doc/html/rfc4271#section-8)では、
@@ -55,13 +56,21 @@ impl Peer {
                 _ => {}
             },
             State::Connect => match event {
-                Event::TcpConnectionConfirmed => self.state = State::OpenSent,
+                Event::TcpConnectionConfirmed => {
+                    self.tcp_connection
+                        .as_mut()
+                        .unwrap()
+                        .send(Message::new_open(
+                            self.config.local_as,
+                            self.config.local_ip,
+                        ));
+                    self.state = State::OpenSent
+                }
                 _ => {}
             },
             _ => {}
         }
     }
-
 }
 
 #[cfg(test)]
