@@ -1,4 +1,4 @@
-use crate::autonomous_system_number::AutonomousSystemNumber;
+use crate::bgp_type::AutonomousSystemNumber;
 use crate::error::ConfigParseError;
 use anyhow::{Context, Result};
 use std::net::Ipv4Addr;
@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub struct Config {
-    local_as: AutonomousSystemNumber,
+    pub local_as: AutonomousSystemNumber,
     pub local_ip: Ipv4Addr,
     remote_as: AutonomousSystemNumber,
     pub remote_ip: Ipv4Addr,

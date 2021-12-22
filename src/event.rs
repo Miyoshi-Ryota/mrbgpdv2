@@ -3,4 +3,7 @@
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub enum Event {
     ManualStart,
+    // 正常系しか実装しない本実装では別のEventとして扱う意味がないため、
+    // TcpConnectionConfirmedはTcpCrAckedも兼ねている。
+    TcpConnectionConfirmed,
 }
