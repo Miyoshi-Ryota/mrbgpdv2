@@ -27,7 +27,7 @@ impl Connection {
 
     pub async fn send(&mut self, message: Message) {
         let bytes: BytesMut = message.into();
-        self.conn.write(&bytes[..]).await;
+        self.conn.write_all(&bytes[..]).await;
     }
 
     async fn connect_to_remote_peer(config: &Config) -> Result<TcpStream> {
