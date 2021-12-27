@@ -4,7 +4,7 @@ use bytes::{BufMut, BytesMut};
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct Header {
     length: u16,
-    type_: MessageType,
+    pub type_: MessageType,
 }
 
 impl Header {
@@ -40,6 +40,7 @@ impl From<Header> for BytesMut {
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum MessageType {
     Open,
+    Keepalive,
 }
 
 impl TryFrom<u8> for MessageType {
@@ -48,6 +49,7 @@ impl TryFrom<u8> for MessageType {
     fn try_from(num: u8) -> Result<Self, Self::Error> {
         match num {
             1 => Ok(MessageType::Open),
+            4 => Ok(MessageType::Keepalive),
             _ => Err(Self::Error::from(anyhow::anyhow!("Num {0}をBGP Message Typeに変換することが出来ませんでした。numは1-4が期待されています。", num))),
         }
     }
@@ -57,6 +59,7 @@ impl From<MessageType> for u8 {
     fn from(type_: MessageType) -> Self {
         match type_ {
             MessageType::Open => 1,
+            MessageType::Keepalive => 4,
         }
     }
 }
