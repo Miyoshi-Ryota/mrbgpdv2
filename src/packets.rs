@@ -2,4 +2,4 @@
 /// ここに定義されているデータ構造をBGP peer間でやり取りします。
 mod header;
 pub mod message;
-mod open;
+pub mod open;

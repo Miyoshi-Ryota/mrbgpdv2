@@ -39,6 +39,18 @@ impl Peer {
         if let Some(event) = self.event_queue.dequeue() {
             self.handle_event(&event).await;
         }
+
+        if let Some(conn) = &mut self.tcp_connection {
+            if let Some(message) = conn.get_message().await {
+                self.handle_message(message);
+            }
+        }
+    }
+
+    fn handle_message(&mut self, message: Message) {
+        match message {
+            Message::Open(open) => self.event_queue.enqueue(Event::BgpOpen(open)),
+        }
     }
 
     async fn handle_event(&mut self, event: &Event) {
@@ -66,6 +78,13 @@ impl Peer {
                         ))
                         .await;
                     self.state = State::OpenSent
+                }
+                _ => {}
+            },
+            State::OpenSent => match event {
+                Event::BgpOpen(open) => {
+                    // ToDo: send keepalive;
+                    self.state = State::OpenConfirm;
                 }
                 _ => {}
             },

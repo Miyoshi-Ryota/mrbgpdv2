@@ -4,7 +4,7 @@ use bytes::{BufMut, BytesMut};
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct Header {
     length: u16,
-    type_: MessageType,
+    pub type_: MessageType,
 }
 
 impl Header {
