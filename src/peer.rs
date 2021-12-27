@@ -63,7 +63,8 @@ impl Peer {
                         .send(Message::new_open(
                             self.config.local_as,
                             self.config.local_ip,
-                        ));
+                        ))
+                        .await;
                     self.state = State::OpenSent
                 }
                 _ => {}
