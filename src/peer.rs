@@ -50,6 +50,9 @@ impl Peer {
     fn handle_message(&mut self, message: Message) {
         match message {
             Message::Open(open) => self.event_queue.enqueue(Event::BgpOpen(open)),
+            Message::Keepalive(keepalive) => {
+                self.event_queue.enqueue(Event::KeepAliveMsg(keepalive))
+            }
         }
     }
 
@@ -83,7 +86,11 @@ impl Peer {
             },
             State::OpenSent => match event {
                 Event::BgpOpen(open) => {
-                    // ToDo: send keepalive;
+                    self.tcp_connection
+                        .as_mut()
+                        .unwrap()
+                        .send(Message::new_keepalive())
+                        .await;
                     self.state = State::OpenConfirm;
                 }
                 _ => {}

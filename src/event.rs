@@ -1,4 +1,4 @@
-use crate::packets::open::OpenMessage;
+use crate::packets::{keepalive::KeepaliveMessage, open::OpenMessage};
 
 /// BGPの[RFC内 8.1 で定義されているEvent](https://datatracker.ietf.org/doc/html/rfc4271#section-8.1)を
 /// 表す列挙型です。
@@ -9,4 +9,5 @@ pub enum Event {
     // TcpConnectionConfirmedはTcpCrAckedも兼ねている。
     TcpConnectionConfirmed,
     BgpOpen(OpenMessage),
+    KeepAliveMsg(KeepaliveMessage), // MsgはMessageの省略形。BGPのRFC内での定義に従っている。
 }
