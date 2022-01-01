@@ -5,6 +5,7 @@ use crate::config::{Config, Mode};
 use crate::connection::Connection;
 use crate::event::Event;
 use crate::event_queue::EventQueue;
+use crate::packets::keepalive;
 use crate::packets::message::Message;
 use crate::state::State;
 
@@ -95,6 +96,12 @@ impl Peer {
                 }
                 _ => {}
             },
+            State::OpenConfirm => match event {
+                Event::KeepAliveMsg(keepalive) => {
+                    self.state = State::Established;
+                },
+                _ => {}
+            }
             _ => {}
         }
     }
