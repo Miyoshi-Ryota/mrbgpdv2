@@ -99,9 +99,9 @@ impl Peer {
             State::OpenConfirm => match event {
                 Event::KeepAliveMsg(keepalive) => {
                     self.state = State::Established;
-                },
+                }
                 _ => {}
-            }
+            },
             _ => {}
         }
     }

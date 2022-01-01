@@ -27,9 +27,9 @@ impl TryFrom<BytesMut> for Message {
         };
 
         let header = Header::try_from(BytesMut::from(&bytes[0..header_bytes_length]))?;
-        match &header.type_ {
-            &MessageType::Open => Ok(Message::Open(OpenMessage::try_from(bytes)?)),
-            &MessageType::Keepalive => Ok(Message::Keepalive(KeepaliveMessage::try_from(bytes)?)),
+        match header.type_ {
+            MessageType::Open => Ok(Message::Open(OpenMessage::try_from(bytes)?)),
+            MessageType::Keepalive => Ok(Message::Keepalive(KeepaliveMessage::try_from(bytes)?)),
         }
     }
 }

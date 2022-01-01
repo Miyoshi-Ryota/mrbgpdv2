@@ -1,6 +1,5 @@
 /// BGPに特有のデータ型のうち、primitiveに近く、
 /// わざわざ個別にモジュールを用意するほどでもないデータ型を定義するモジュールです。
-
 use crate::error::ConvertBytesToBgpMessageError;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
