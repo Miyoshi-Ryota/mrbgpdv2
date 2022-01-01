@@ -4,4 +4,5 @@ pub enum State {
     Connect,
     OpenSent,
     OpenConfirm,
+    Established,
 }
