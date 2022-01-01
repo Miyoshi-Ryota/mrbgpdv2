@@ -33,3 +33,9 @@ impl KeepaliveMessage {
         Self { header }
     }
 }
+
+impl Default for KeepaliveMessage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
