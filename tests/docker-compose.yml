@@ -1,0 +1,42 @@
+services:
+  host1:
+    cap_add:
+      - NET_ADMIN # NET_ADMINがないと、ルーティングテーブルの操作ができない。
+    build: # Build Contextを変更して、Dockerfile, docker-compose.ymlより上位にあるファイルをCOPYできるようにしている。
+      context: ../
+      dockerfile: ./tests/host1/Dockerfile
+    networks:
+      bgp-test-network:
+        ipv4_address: 10.200.100.2
+      host1-network:
+        ipv4_address: 10.100.210.2
+    depends_on:
+      - host2 # host2から起動するようにしているのは、現状の実装ではBGPのpassiveモード側から起動しないとネイバーがはれないため。
+  host2:
+    cap_add:
+      - NET_ADMIN # NET_ADMINがないと、ルーティングテーブルの操作ができない。
+    build: # Build Contextを変更して、Dockerfile, docker-compose.ymlより上位にあるファイルをCOPYできるようにしている。
+      context: ../
+      dockerfile: ./tests/host2/Dockerfile
+    networks:
+      bgp-test-network:
+        ipv4_address: 10.200.100.3
+      host2-network:
+        ipv4_address: 10.100.220.3
+
+networks:
+  bgp-test-network: # host1, host2がピアリングするためのネットワーク
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.200.100.0/24
+  host1-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.100.210.0/24
+  host2-network: # host2 -> host1にアドバタイズするネットワーク
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.100.220.0/24

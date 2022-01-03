@@ -60,8 +60,8 @@ mod tests {
     #[tokio::test]
     async fn loclib_can_lookup_routing_table() {
         // 本テストの値は環境によって異なる。
-        // 本実装では開発機, テスト実施機に192.168.1.0/24に属するIPが付与されていることを仮定している。
-        let network = Ipv4Network::new("192.168.1.0".parse().unwrap(), 24).unwrap();
+        // 本実装では開発機, テスト実施機に10.200.100.0/24に属するIPが付与されていることを仮定している。
+        let network = Ipv4Network::new("10.200.100.0".parse().unwrap(), 24).unwrap();
         let routes = LocRib::lookup_kernel_routing_table(network).await.unwrap();
         let expected = vec![(network, NextHop::DirectConnected)];
         assert_eq!(routes, expected);

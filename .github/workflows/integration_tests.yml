@@ -1,0 +1,14 @@
+name: Integration tests
+
+on: [push, pull_request]
+
+jobs:
+  build-and-integration-test:
+    name: Test integration-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run integration tests
+        shell: bash
+        run: ./tests/run_integration_tests.sh
