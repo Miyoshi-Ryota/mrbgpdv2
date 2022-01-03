@@ -1,0 +1,14 @@
+name: Unit tests
+
+on: [push, pull_request]
+
+jobs:
+  build-and-unit-test:
+    name: Test unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run unit tests
+        shell: bash
+        run: ./tests/run_unit_tests.sh
