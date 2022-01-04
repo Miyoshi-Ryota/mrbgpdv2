@@ -1,17 +1,37 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use crate::config::Config;
+use crate::path_attribute::{AsPath, Origin, PathAttribute};
 use anyhow::{Context, Result};
 use futures::stream::{Next, TryStreamExt};
 use ipnetwork::Ipv4Network;
 use rtnetlink::{new_connection, Handle, IpVersion};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct LocRib;
+struct LocRib(Vec<RibEntry>);
 
 impl LocRib {
-    async fn new(config: &Config) -> Self {
-        todo!();
+    async fn new(config: &Config) -> Result<Self> {
+        let path_attributes = vec![
+            PathAttribute::Origin(Origin::Igp),
+            // AS Pathは、ほかのピアから受信したルートと統一的に扱うために、
+            // LocRib -> AdjRibOutにルートを送るときに、自分のAS番号を
+            // 追加するので、ここでは空にしておく。
+            PathAttribute::AsPath(AsPath::AsSequence(vec![])),
+            PathAttribute::NextHop(config.local_ip),
+        ];
+
+        let mut rib = vec![];
+        for network in &config.networks {
+            let routes = Self::lookup_kernel_routing_table(*network).await?;
+            for route in routes {
+                rib.push(RibEntry {
+                    network_address: route,
+                    path_attributes: path_attributes.clone(),
+                })
+            }
+        }
+        Ok(Self(rib))
     }
 
     async fn lookup_kernel_routing_table(
@@ -38,6 +58,11 @@ impl LocRib {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+struct RibEntry {
+    network_address: Ipv4Network,
+    path_attributes: Vec<PathAttribute>,
+}
 
 #[cfg(test)]
 mod tests {
