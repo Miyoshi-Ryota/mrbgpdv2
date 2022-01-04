@@ -16,7 +16,7 @@ impl LocRib {
 
     async fn lookup_kernel_routing_table(
         network_address: Ipv4Network,
-    ) -> Result<(Vec<(Ipv4Network, NextHop)>)> {
+    ) -> Result<(Vec<Ipv4Network>)> {
         let (connection, handle, _) = new_connection()?;
         tokio::spawn(connection);
         let mut routes = handle.route().get(IpVersion::V4).execute();
@@ -32,25 +32,12 @@ impl LocRib {
                 continue;
             }
 
-            let next_hop = if route.output_interface().is_some() {
-                NextHop::DirectConnected
-            } else if let Some(IpAddr::V4(addr)) = route.gateway() {
-                NextHop::Ipv4Addr(addr)
-            } else {
-                continue;
-            };
-
-            results.push((destination, next_hop));
+            results.push(destination);
         }
         Ok(results)
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-enum NextHop {
-    Ipv4Addr(Ipv4Addr),
-    DirectConnected,
-}
 
 #[cfg(test)]
 mod tests {
@@ -63,7 +50,7 @@ mod tests {
         // 本実装では開発機, テスト実施機に10.200.100.0/24に属するIPが付与されていることを仮定している。
         let network = Ipv4Network::new("10.200.100.0".parse().unwrap(), 24).unwrap();
         let routes = LocRib::lookup_kernel_routing_table(network).await.unwrap();
-        let expected = vec![(network, NextHop::DirectConnected)];
+        let expected = vec![network];
         assert_eq!(routes, expected);
     }
 }
