@@ -21,3 +21,14 @@ pub enum AsPath {
     AsSequence(Vec<AutonomousSystemNumber>),
     AsSet(HashSet<AutonomousSystemNumber>),
 }
+
+impl AsPath {
+    pub fn add(&mut self, as_number: AutonomousSystemNumber) {
+        match self {
+            AsPath::AsSequence(seq) => seq.push(as_number),
+            AsPath::AsSet(set) => {
+                set.insert(as_number);
+            }
+        };
+    }
+}
