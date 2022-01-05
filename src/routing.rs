@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr};
 
+use crate::bgp_type::AutonomousSystemNumber;
 use crate::config::Config;
 use crate::path_attribute::{AsPath, Origin, PathAttribute};
 use anyhow::{Context, Result};
@@ -77,5 +78,29 @@ mod tests {
         let routes = LocRib::lookup_kernel_routing_table(network).await.unwrap();
         let expected = vec![network];
         assert_eq!(routes, expected);
+    }
+
+    #[tokio::test]
+    async fn loc_rib_to_adj_rib_out() {
+        // 本テストの値は環境によって異なる。
+        // 本実装では開発機, テスト実施機に10.200.100.0/24に属するIPが付与されていることを仮定している。
+        // docker-composeした環境のhost2で実行することを仮定している。
+        let config: Config = "64513 10.200.100.3 64512 10.200.100.2 passive 10.100.220.0/24".parse().unwrap();
+        let mut loc_rib = LocRib::new(&config).await.unwrap();
+        let mut adj_rib_out = AdjRibOut::new();
+        adj_rib_out.install_from_loc_rib(&mut loc_rib, &config);
+
+        let expected_adj_rib_out = AdjRibOut(vec![
+            RibEntry {
+                network_address: "10.100.220.0/24".parse().unwrap(),
+                path_attributes: vec![
+                    PathAttribute::Origin(Origin::Igp),
+                    PathAttribute::AsPath(AsPath::AsSequence(vec![64513.into()])),
+                    PathAttribute::NextHop("10.200.100.3".parse().unwrap()),
+                ],
+            }
+        ]);
+
+        assert_eq!(adj_rib_out, expected_adj_rib_out);
     }
 }
