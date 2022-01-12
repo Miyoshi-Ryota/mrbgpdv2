@@ -1,7 +1,7 @@
 use crate::bgp_type::AutonomousSystemNumber;
-use std::{collections::HashSet, net::Ipv4Addr};
+use std::{collections::BTreeSet, net::Ipv4Addr};
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum PathAttribute {
     Origin(Origin),
     AsPath(AsPath),
@@ -16,10 +16,10 @@ pub enum Origin {
     Incomplete,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum AsPath {
     AsSequence(Vec<AutonomousSystemNumber>),
-    AsSet(HashSet<AutonomousSystemNumber>),
+    AsSet(BTreeSet<AutonomousSystemNumber>),
 }
 
 impl AsPath {
