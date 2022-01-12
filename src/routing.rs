@@ -1,12 +1,46 @@
 use std::net::{IpAddr, Ipv4Addr};
+use std::ops::{Deref, DerefMut};
+use std::str::FromStr;
 
 use crate::bgp_type::AutonomousSystemNumber;
 use crate::config::Config;
+use crate::error::ConfigParseError;
 use crate::path_attribute::{AsPath, Origin, PathAttribute};
 use anyhow::{Context, Result};
 use futures::stream::{Next, TryStreamExt};
-use ipnetwork::Ipv4Network;
+use ipnetwork;
 use rtnetlink::{new_connection, Handle, IpVersion};
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
+pub struct Ipv4Network(ipnetwork::Ipv4Network);
+
+impl Deref for Ipv4Network {
+    type Target = ipnetwork::Ipv4Network;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Ipv4Network {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl From<ipnetwork::Ipv4Network> for Ipv4Network {
+    fn from(ip_network: ipnetwork::Ipv4Network) -> Self {
+        Self(ip_network)
+    }
+}
+
+impl FromStr for Ipv4Network {
+    type Err = ConfigParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse()
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct LocRib(Vec<RibEntry>);
@@ -44,7 +78,7 @@ impl LocRib {
         let mut results = vec![];
         while let Some(route) = routes.try_next().await? {
             let destination = if let Some((IpAddr::V4(addr), prefix)) = route.destination_prefix() {
-                Ipv4Network::new(addr, prefix)?
+                ipnetwork::Ipv4Network::new(addr, prefix)?.into()
             } else {
                 continue;
             };
@@ -110,7 +144,7 @@ mod tests {
     async fn loclib_can_lookup_routing_table() {
         // 本テストの値は環境によって異なる。
         // 本実装では開発機, テスト実施機に10.200.100.0/24に属するIPが付与されていることを仮定している。
-        let network = Ipv4Network::new("10.200.100.0".parse().unwrap(), 24).unwrap();
+        let network = ipnetwork::Ipv4Network::new("10.200.100.0".parse().unwrap(), 24).unwrap().into();
         let routes = LocRib::lookup_kernel_routing_table(network).await.unwrap();
         let expected = vec![network];
         assert_eq!(routes, expected);

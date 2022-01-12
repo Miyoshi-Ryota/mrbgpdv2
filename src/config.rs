@@ -1,7 +1,7 @@
 use crate::bgp_type::AutonomousSystemNumber;
 use crate::error::ConfigParseError;
 use anyhow::{Context, Result};
-use ipnetwork::Ipv4Network;
+use crate::routing::Ipv4Network;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 
