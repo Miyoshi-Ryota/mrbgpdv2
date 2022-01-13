@@ -94,7 +94,7 @@ impl LocRib {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct AdjRibOut(Vec<RibEntry>);
+pub struct AdjRibOut(pub Vec<RibEntry>);
 
 impl AdjRibOut {
     fn new() -> Self {
@@ -112,9 +112,9 @@ impl AdjRibOut {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct RibEntry {
-    network_address: Ipv4Network,
-    path_attributes: Vec<PathAttribute>,
+pub struct RibEntry {
+    pub network_address: Ipv4Network,
+    pub path_attributes: Vec<PathAttribute>,
 }
 
 impl RibEntry {
