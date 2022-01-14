@@ -8,7 +8,6 @@ use crate::error::ConfigParseError;
 use crate::path_attribute::{AsPath, Origin, PathAttribute};
 use anyhow::{Context, Result};
 use futures::stream::{Next, TryStreamExt};
-use ipnetwork;
 use rtnetlink::{new_connection, Handle, IpVersion};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
@@ -38,7 +37,9 @@ impl FromStr for Ipv4Network {
     type Err = ConfigParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let network = s.parse::<ipnetwork::Ipv4Network>().context("s: {:?}を、Ipv4Networkにparse出来ませんでした")?;
+        let network = s
+            .parse::<ipnetwork::Ipv4Network>()
+            .context("s: {:?}を、Ipv4Networkにparse出来ませんでした")?;
         Ok(Self(network))
     }
 }
@@ -50,7 +51,7 @@ impl Ipv4Network {
             9..17 => 3,
             17..25 => 4,
             25..33 => 5,
-            _ => panic!("prefixが0..32の間ではありません！")
+            _ => panic!("prefixが0..32の間ではありません！"),
         }
     }
 }
@@ -157,7 +158,9 @@ mod tests {
     async fn loclib_can_lookup_routing_table() {
         // 本テストの値は環境によって異なる。
         // 本実装では開発機, テスト実施機に10.200.100.0/24に属するIPが付与されていることを仮定している。
-        let network = ipnetwork::Ipv4Network::new("10.200.100.0".parse().unwrap(), 24).unwrap().into();
+        let network = ipnetwork::Ipv4Network::new("10.200.100.0".parse().unwrap(), 24)
+            .unwrap()
+            .into();
         let routes = LocRib::lookup_kernel_routing_table(network).await.unwrap();
         let expected = vec![network];
         assert_eq!(routes, expected);

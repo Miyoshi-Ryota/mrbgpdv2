@@ -10,5 +10,5 @@ pub enum Event {
     TcpConnectionConfirmed,
     BgpOpen(OpenMessage),
     KeepAliveMsg(KeepaliveMessage), // MsgはMessageの省略形。BGPのRFC内での定義に従っている。
-    UpdateMsg(UpdateMessage), // BGPのRFC内での定義に従っている。
+    UpdateMsg(UpdateMessage),       // BGPのRFC内での定義に従っている。
 }

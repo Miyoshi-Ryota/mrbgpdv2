@@ -15,7 +15,7 @@ impl PathAttribute {
             PathAttribute::Origin(o) => 1,
             PathAttribute::AsPath(a) => a.bytes_len(),
             PathAttribute::NextHop(_) => 4,
-            PathAttribute::DontKnow(v) => v.len()
+            PathAttribute::DontKnow(v) => v.len(),
         }
     }
 }
