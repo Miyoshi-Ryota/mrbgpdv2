@@ -38,7 +38,11 @@ impl FromStr for Ipv4Network {
     type Err = ConfigParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse()
+        let network = s.parse::<ipnetwork::Ipv4Network>().context("s: {:?}を、Ipv4Networkにparse出来ませんでした")?;
+        Ok(Self(network))
+    }
+}
+
     }
 }
 
