@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bytes::BytesMut;
 use crate::routing::Ipv4Network;
 
@@ -13,13 +15,23 @@ use super::header::MessageType;
 pub struct UpdateMessage {
     header: Header,
     withdrawn_routes: Vec<Ipv4Network>,
-    path_attributes: Vec  <PathAttribute>,
+    withdrawn_routes_length: u16,  // ルート数ではなく、bytesにしたときのオクテット数。
+    path_attributes: Vec<PathAttribute>,
+    path_attributes_length: u16, // bytesにした時のオクテット数。
     network_layer_reachability_information: Vec<Ipv4Network>,
+    // NLRIのオクテット数はBGP UpdateMessageに含めず、
+    // Headerのサイズを計算することにしか使用しないため、
+    // メンバに含めていない。
 }
 
 impl UpdateMessage {
     fn new(path_attributes: Vec<PathAttribute>, network_layer_reachability_information: Vec<Ipv4Network>, withdrawn_routes: Vec<Ipv4Network>) -> Self {
-        todo!();
+        let path_attributes_length = path_attributes.iter().map(|p| p.bytes_len()).fold(0, |acc, l| acc + l) as u16;
+        let network_layer_reachability_information_length = network_layer_reachability_information.iter().map(|r| r.bytes_len()).fold(0, |acc, l| acc + l) as u16;
+        let withdrawn_routes_length = withdrawn_routes.iter().map(|w| w.bytes_len()).fold(0, |acc, l| acc + l) as u16;
+        let header_minimum_length: u16 = 19;
+        let header = Header::new(header_minimum_length + path_attributes_length + network_layer_reachability_information_length + withdrawn_routes_length, MessageType::Update);
+        Self { header, withdrawn_routes, withdrawn_routes_length, path_attributes, path_attributes_length, network_layer_reachability_information}
     }
 }
 
@@ -36,9 +48,26 @@ impl TryFrom<BytesMut> for UpdateMessage {
     }
 }
 
+/// AdjRibOutからUpdateMessageに変換する。
+/// PathAttributeごとにUpdateMessageが分かれるためVec<UpdateMessage>の戻り値にしている。
 impl From<&AdjRibOut> for Vec<UpdateMessage> {
     fn from(rib: &AdjRibOut) -> Self {
-        todo!()
+        let mut hash_map: HashMap<Vec<PathAttribute>, Vec<Ipv4Network>> = HashMap::new();
+        for entry in &rib.0 {
+            if let Some(routes) = hash_map.get_mut(&entry.path_attributes) {
+                routes.push(entry.network_address);
+            } else {
+                hash_map.insert(entry.path_attributes.clone(), vec![]);
+            }
+        }
+
+        let mut updates = vec![];
+        for (path_attributes, routes) in hash_map.into_iter() {
+            // ToDo: withdrawn routesに対応する。
+            updates.push(
+                UpdateMessage::new(path_attributes, routes, vec![]));
+        }
+        updates
     }
 }
 

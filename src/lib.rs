@@ -1,4 +1,4 @@
-#![feature(backtrace)]
+#![feature(backtrace, exclusive_range_pattern)]
 #![allow(dead_code, unused)]
 
 mod bgp_type;

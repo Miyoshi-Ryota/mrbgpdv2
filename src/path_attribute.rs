@@ -9,6 +9,17 @@ pub enum PathAttribute {
     DontKnow(Vec<u8>), // 対応してないPathAttribute用
 }
 
+impl PathAttribute {
+    pub fn bytes_len(&self) -> usize {
+        match self {
+            PathAttribute::Origin(o) => 1,
+            PathAttribute::AsPath(a) => a.bytes_len(),
+            PathAttribute::NextHop(_) => 4,
+            PathAttribute::DontKnow(v) => v.len()
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Origin {
     Igp,
@@ -20,6 +31,15 @@ pub enum Origin {
 pub enum AsPath {
     AsSequence(Vec<AutonomousSystemNumber>),
     AsSet(BTreeSet<AutonomousSystemNumber>),
+}
+
+impl AsPath {
+    fn bytes_len(&self) -> usize {
+        match self {
+            AsPath::AsSequence(v) => 2 * v.len(),
+            AsPath::AsSet(s) => 2 * s.len(),
+        }
+    }
 }
 
 impl AsPath {
