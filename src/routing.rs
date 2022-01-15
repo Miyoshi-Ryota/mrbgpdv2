@@ -57,10 +57,10 @@ impl Ipv4Network {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct LocRib(Vec<RibEntry>);
+pub struct LocRib(Vec<RibEntry>);
 
 impl LocRib {
-    async fn new(config: &Config) -> Result<Self> {
+    pub async fn new(config: &Config) -> Result<Self> {
         let path_attributes = vec![
             PathAttribute::Origin(Origin::Igp),
             // AS Pathは、ほかのピアから受信したルートと統一的に扱うために、
@@ -111,7 +111,7 @@ impl LocRib {
 pub struct AdjRibOut(pub Vec<RibEntry>);
 
 impl AdjRibOut {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self(vec![])
     }
 
