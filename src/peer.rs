@@ -10,7 +10,8 @@ use crate::event::Event;
 use crate::event_queue::EventQueue;
 use crate::packets::keepalive;
 use crate::packets::message::Message;
-use crate::routing::LocRib;
+use crate::packets::update::UpdateMessage;
+use crate::routing::{AdjRibOut, LocRib};
 use crate::state::State;
 
 /// [BGPのRFCで示されている実装方針](https://datatracker.ietf.org/doc/html/rfc4271#section-8)では、
@@ -23,18 +24,21 @@ pub struct Peer {
     tcp_connection: Option<Connection>,
     config: Config,
     loc_rib: Arc<Mutex<LocRib>>,
+    adj_rib_out: AdjRibOut,
 }
 
 impl Peer {
     pub fn new(config: Config, loc_rib: Arc<Mutex<LocRib>>) -> Self {
         let state = State::Idle;
         let event_queue = EventQueue::new();
+        let adj_rib_out = AdjRibOut::new();
         Self {
             state,
             event_queue,
             config,
             tcp_connection: None,
             loc_rib,
+            adj_rib_out,
         }
     }
 
@@ -108,10 +112,30 @@ impl Peer {
             State::OpenConfirm => match event {
                 Event::KeepAliveMsg(keepalive) => {
                     self.state = State::Established;
+                    self.event_queue.enqueue(Event::Established);
                 }
                 _ => {}
             },
-            _ => {}
+            State::Established => match event {
+                Event::Established | Event::LocRibChanged => {
+                    let loc_rib = self.loc_rib.lock().await;
+                    self.adj_rib_out
+                        .install_from_loc_rib(&loc_rib, &self.config);
+                    self.event_queue.enqueue(Event::AdjRibOutChanged);
+                }
+                Event::AdjRibOutChanged => {
+                    let updates: Vec<UpdateMessage> = (&self.adj_rib_out).into();
+                    for update in updates {
+                        self.tcp_connection
+                            .as_mut()
+                            .unwrap()
+                            .send(Message::Update(update))
+                            .await;
+                    }
+                    println!("UpdateMessage send!!!!")
+                }
+                _ => {}
+            },
         }
     }
 }

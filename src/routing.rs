@@ -7,6 +7,7 @@ use crate::config::Config;
 use crate::error::ConfigParseError;
 use crate::path_attribute::{AsPath, Origin, PathAttribute};
 use anyhow::{Context, Result};
+use bytes::{BufMut, BytesMut};
 use futures::stream::{Next, TryStreamExt};
 use rtnetlink::{new_connection, Handle, IpVersion};
 
@@ -30,6 +31,26 @@ impl DerefMut for Ipv4Network {
 impl From<ipnetwork::Ipv4Network> for Ipv4Network {
     fn from(ip_network: ipnetwork::Ipv4Network) -> Self {
         Self(ip_network)
+    }
+}
+
+impl From<&Ipv4Network> for BytesMut {
+    fn from(network: &Ipv4Network) -> BytesMut {
+        let prefix = network.prefix();
+
+        let n = network.network().octets();
+        let network_bytes = match prefix {
+            0 => vec![],
+            1..9 => n[0..1].into(),
+            9..17 => n[0..2].into(),
+            17..25 => n[0..3].into(),
+            25..33 => n[0..4].into(),
+            _ => panic!("prefixが0..32の間ではありません！"),
+        };
+        let mut bytes = BytesMut::new();
+        bytes.put_u8(prefix);
+        bytes.put(&network_bytes[..]);
+        bytes
     }
 }
 
@@ -115,7 +136,7 @@ impl AdjRibOut {
         Self(vec![])
     }
 
-    fn install_from_loc_rib(&mut self, loc_rib: &LocRib, config: &Config) {
+    pub fn install_from_loc_rib(&mut self, loc_rib: &LocRib, config: &Config) {
         for r in &loc_rib.0 {
             let mut route = r.clone();
             route.append_as_path(config.local_as);
