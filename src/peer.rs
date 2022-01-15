@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use anyhow::{Context, Result};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::Mutex;
 
 use crate::config::{Config, Mode};
 use crate::connection::Connection;
@@ -7,6 +10,8 @@ use crate::event::Event;
 use crate::event_queue::EventQueue;
 use crate::packets::keepalive;
 use crate::packets::message::Message;
+use crate::packets::update::UpdateMessage;
+use crate::routing::{AdjRibOut, LocRib};
 use crate::state::State;
 
 /// [BGPのRFCで示されている実装方針](https://datatracker.ietf.org/doc/html/rfc4271#section-8)では、
@@ -18,17 +23,22 @@ pub struct Peer {
     event_queue: EventQueue,
     tcp_connection: Option<Connection>,
     config: Config,
+    loc_rib: Arc<Mutex<LocRib>>,
+    adj_rib_out: AdjRibOut,
 }
 
 impl Peer {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, loc_rib: Arc<Mutex<LocRib>>) -> Self {
         let state = State::Idle;
         let event_queue = EventQueue::new();
+        let adj_rib_out = AdjRibOut::new();
         Self {
             state,
             event_queue,
             config,
             tcp_connection: None,
+            loc_rib,
+            adj_rib_out,
         }
     }
 
@@ -54,6 +64,7 @@ impl Peer {
             Message::Keepalive(keepalive) => {
                 self.event_queue.enqueue(Event::KeepAliveMsg(keepalive))
             }
+            Message::Update(update) => self.event_queue.enqueue(Event::UpdateMsg(update)),
         }
     }
 
@@ -99,10 +110,30 @@ impl Peer {
             State::OpenConfirm => match event {
                 Event::KeepAliveMsg(keepalive) => {
                     self.state = State::Established;
+                    self.event_queue.enqueue(Event::Established);
                 }
                 _ => {}
             },
-            _ => {}
+            State::Established => match event {
+                Event::Established | Event::LocRibChanged => {
+                    let loc_rib = self.loc_rib.lock().await;
+                    self.adj_rib_out
+                        .install_from_loc_rib(&loc_rib, &self.config);
+                    self.event_queue.enqueue(Event::AdjRibOutChanged);
+                }
+                Event::AdjRibOutChanged => {
+                    let updates: Vec<UpdateMessage> = (&self.adj_rib_out).into();
+                    for update in updates {
+                        self.tcp_connection
+                            .as_mut()
+                            .unwrap()
+                            .send(Message::Update(update))
+                            .await;
+                    }
+                    println!("UpdateMessage send!!!!")
+                }
+                _ => {}
+            },
         }
     }
 }
@@ -115,14 +146,16 @@ mod tests {
     #[tokio::test]
     async fn peer_can_transition_to_connect_state() {
         let config: Config = "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
-        let mut peer = Peer::new(config);
+        let loc_rib = Arc::new(Mutex::new(LocRib::new(&config).await.unwrap()));
+        let mut peer = Peer::new(config, Arc::clone(&loc_rib));
         peer.start();
 
         // 別スレッドでPeer構造体を実行しています。
         // これはネットワーク上で離れた別のマシンを模擬しています。
         tokio::spawn(async move {
             let remote_config = "64513 127.0.0.2 65412 127.0.0.1 passive".parse().unwrap();
-            let mut remote_peer = Peer::new(remote_config);
+            let remote_loc_rib = Arc::new(Mutex::new(LocRib::new(&remote_config).await.unwrap()));
+            let mut remote_peer = Peer::new(remote_config, Arc::clone(&remote_loc_rib));
             remote_peer.start();
             remote_peer.next().await;
         });
@@ -136,14 +169,16 @@ mod tests {
     #[tokio::test]
     async fn peer_can_transition_to_open_sent_state() {
         let config: Config = "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
-        let mut peer = Peer::new(config);
+        let loc_rib = Arc::new(Mutex::new(LocRib::new(&config).await.unwrap()));
+        let mut peer = Peer::new(config, Arc::clone(&loc_rib));
         peer.start();
 
         // 別スレッドでPeer構造体を実行しています。
         // これはネットワーク上で離れた別のマシンを模擬しています。
         tokio::spawn(async move {
             let remote_config = "64513 127.0.0.2 65412 127.0.0.1 passive".parse().unwrap();
-            let mut remote_peer = Peer::new(remote_config);
+            let remote_loc_rib = Arc::new(Mutex::new(LocRib::new(&remote_config).await.unwrap()));
+            let mut remote_peer = Peer::new(remote_config, Arc::clone(&remote_loc_rib));
             remote_peer.start();
             remote_peer.next().await;
             remote_peer.next().await;
@@ -159,14 +194,16 @@ mod tests {
     #[tokio::test]
     async fn peer_can_transition_to_open_confirm_state() {
         let config: Config = "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
-        let mut peer = Peer::new(config);
+        let loc_rib = Arc::new(Mutex::new(LocRib::new(&config).await.unwrap()));
+        let mut peer = Peer::new(config, Arc::clone(&loc_rib));
         peer.start();
 
         // 別スレッドでPeer構造体を実行しています。
         // これはネットワーク上で離れた別のマシンを模擬しています。
         tokio::spawn(async move {
             let remote_config = "64513 127.0.0.2 65412 127.0.0.1 passive".parse().unwrap();
-            let mut remote_peer = Peer::new(remote_config);
+            let remote_loc_rib = Arc::new(Mutex::new(LocRib::new(&remote_config).await.unwrap()));
+            let mut remote_peer = Peer::new(remote_config, Arc::clone(&remote_loc_rib));
             remote_peer.start();
             let max_step = 50;
             for _ in 0..max_step {
@@ -194,14 +231,16 @@ mod tests {
     #[tokio::test]
     async fn peer_can_transition_to_established_state() {
         let config: Config = "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
-        let mut peer = Peer::new(config);
+        let loc_rib = Arc::new(Mutex::new(LocRib::new(&config).await.unwrap()));
+        let mut peer = Peer::new(config, Arc::clone(&loc_rib));
         peer.start();
 
         // 別スレッドでPeer構造体を実行しています。
         // これはネットワーク上で離れた別のマシンを模擬しています。
         tokio::spawn(async move {
             let remote_config = "64513 127.0.0.2 65412 127.0.0.1 passive".parse().unwrap();
-            let mut remote_peer = Peer::new(remote_config);
+            let remote_loc_rib = Arc::new(Mutex::new(LocRib::new(&remote_config).await.unwrap()));
+            let mut remote_peer = Peer::new(remote_config, Arc::clone(&remote_loc_rib));
             remote_peer.start();
             let max_step = 50;
             for _ in 0..max_step {
