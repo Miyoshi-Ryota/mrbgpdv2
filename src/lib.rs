@@ -10,5 +10,5 @@ mod event_queue;
 mod packets;
 mod path_attribute;
 pub mod peer;
-mod routing;
+pub mod routing;
 mod state;
