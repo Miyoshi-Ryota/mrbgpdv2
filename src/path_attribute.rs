@@ -35,10 +35,12 @@ pub enum AsPath {
 
 impl AsPath {
     fn bytes_len(&self) -> usize {
-        match self {
+        let as_bytes_length = match self {
             AsPath::AsSequence(v) => 2 * v.len(),
             AsPath::AsSet(s) => 2 * s.len(),
-        }
+        };
+        // AsSetかAsSequenceかを表すoctet + asの数を表すoctet + asのbytesの値
+        1 + 1 + as_bytes_length
     }
 }
 
