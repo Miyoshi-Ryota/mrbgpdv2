@@ -27,11 +27,16 @@ async fn main() {
     for peer in &mut peers {
         peer.start();
     }
+    let mut handles = vec![];
     for mut peer in peers {
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             loop {
                 peer.next().await;
             }
         });
+        handles.push(handle);
+    }
+    for handle in handles {
+        handle.await;
     }
 }
