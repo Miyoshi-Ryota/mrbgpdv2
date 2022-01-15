@@ -16,10 +16,11 @@ async fn main() {
     for peer in &mut peers {
         peer.start();
     }
-
-    loop {
-        for peer in &mut peers {
-            peer.next().await;
-        }
+    for mut peer in peers {
+        tokio::spawn( async move {
+            loop {
+                peer.next().await;
+            }
+        });
     }
 }
