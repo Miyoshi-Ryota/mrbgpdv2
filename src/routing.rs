@@ -68,7 +68,8 @@ impl FromStr for Ipv4Network {
 impl Ipv4Network {
     pub fn bytes_len(&self) -> usize {
         match self.prefix() {
-            0..9 => 2,
+            0 => 1,
+            1..9 => 2,
             9..17 => 3,
             17..25 => 4,
             25..33 => 5,
