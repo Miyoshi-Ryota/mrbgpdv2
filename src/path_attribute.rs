@@ -77,7 +77,7 @@ impl From<&PathAttribute> for BytesMut {
             }
             PathAttribute::NextHop(n) => {
                 let mut attribute_flag = 0b01000000;
-                let attribute_type_code = 2;
+                let attribute_type_code = 3;
                 let attribute_length = 4;
                 let attribute = n.octets();
 
