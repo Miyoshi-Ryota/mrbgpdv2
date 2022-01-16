@@ -15,11 +15,11 @@ use super::header::MessageType;
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct UpdateMessage {
     header: Header,
-    withdrawn_routes: Vec<Ipv4Network>,
+    pub withdrawn_routes: Vec<Ipv4Network>,
     withdrawn_routes_length: u16, // ルート数ではなく、bytesにしたときのオクテット数。
-    path_attributes: Vec<PathAttribute>,
+    pub path_attributes: Vec<PathAttribute>,
     path_attributes_length: u16, // bytesにした時のオクテット数。
-    network_layer_reachability_information: Vec<Ipv4Network>,
+    pub network_layer_reachability_information: Vec<Ipv4Network>,
     // NLRIのオクテット数はBGP UpdateMessageに含めず、
     // Headerのサイズを計算することにしか使用しないため、
     // メンバに含めていない。

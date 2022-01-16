@@ -5,6 +5,7 @@ use std::str::FromStr;
 use crate::bgp_type::AutonomousSystemNumber;
 use crate::config::Config;
 use crate::error::{ConfigParseError, ConstructIpv4NetworkError, ConvertBytesToBgpMessageError};
+use crate::packets::update::UpdateMessage;
 use crate::path_attribute::{AsPath, Origin, PathAttribute};
 use anyhow::{Context, Result};
 use bytes::{BufMut, BytesMut};
@@ -199,6 +200,26 @@ impl AdjRibOut {
             route.append_as_path(config.local_as);
             route.change_next_hop(config.local_ip);
             self.0.push(route);
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AdjRibIn(pub Vec<RibEntry>);
+impl AdjRibIn {
+    pub fn new() -> Self {
+        Self(vec![])
+    }
+    pub fn install_from_update(&mut self, update: UpdateMessage, config: &Config) {
+        // ToDo: * rib_entryが重複しないようにする
+        //       * withdrawnに対応する。
+        let path_attributes = update.path_attributes;
+        for network in update.network_layer_reachability_information {
+            let rib_entry = RibEntry {
+                network_address: network,
+                path_attributes: path_attributes.clone(),
+            };
+            self.0.push(rib_entry);
         }
     }
 }

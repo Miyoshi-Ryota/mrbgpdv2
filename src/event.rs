@@ -12,7 +12,8 @@ pub enum Event {
     KeepAliveMsg(KeepaliveMessage), // MsgはMessageの省略形。BGPのRFC内での定義に従っている。
     UpdateMsg(UpdateMessage),       // BGPのRFC内での定義に従っている。
     Established, // StateがEstablishedに遷移したことを表す。存在するほうが実装が楽なので追加した本実装オリジナルのイベント
-    // LocRib / AdjRibOutが変わったときのイベント。存在するほうが実装が楽なので追加した。
+    // LocRib / AdjRibOu / AdjRibIntが変わったときのイベント。存在するほうが実装が楽なので追加した。
     LocRibChanged,
     AdjRibOutChanged,
+    AdjRibInChanged,
 }
