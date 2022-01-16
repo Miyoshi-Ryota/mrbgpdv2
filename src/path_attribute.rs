@@ -13,11 +13,20 @@ pub enum PathAttribute {
 
 impl PathAttribute {
     pub fn bytes_len(&self) -> usize {
-        match self {
+        let path_attribute_value_length = match self {
             PathAttribute::Origin(o) => 1,
             PathAttribute::AsPath(a) => a.bytes_len(),
             PathAttribute::NextHop(_) => 4,
             PathAttribute::DontKnow(v) => v.len(),
+        };
+        // flagを表すoctet, typeを表すoctet分を追加。
+        let length = path_attribute_value_length + 2;
+        if path_attribute_value_length > 255 {
+            length + 2 // path_attribute_value_lengthが255以上のとき、
+                       // attribute lengthを表すoctetが1 octetで表せず
+                       // 2octetsになる。
+        } else {
+            length + 1 // attribute lengthを表すoctet分追加。
         }
     }
 }
