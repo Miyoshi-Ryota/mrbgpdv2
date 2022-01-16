@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::net::Ipv4Addr;
 
 use crate::routing::Ipv4Network;
+use anyhow::Context;
 use bytes::{BufMut, BytesMut};
 
 use crate::error::ConvertBytesToBgpMessageError;
@@ -85,8 +87,39 @@ impl From<UpdateMessage> for BytesMut {
 
 impl TryFrom<BytesMut> for UpdateMessage {
     type Error = ConvertBytesToBgpMessageError;
-    fn try_from(value: BytesMut) -> Result<Self, Self::Error> {
-        todo!()
+    fn try_from(bytes: BytesMut) -> Result<Self, Self::Error> {
+        let header = Header::try_from(BytesMut::from(&bytes[0..19]))?;
+        let withdrawn_routes_length: u16 =
+            u16::from_be_bytes(bytes[19..21].try_into().context(format!(
+                "Bytes: {:?}からwithdrawn_routes_lengthに変換できませんでした",
+                &bytes
+            ))?);
+        let withdrawn_routes_end_index = 21 + withdrawn_routes_length as usize;
+        let withdrawn_routes_bytes = &bytes[21..withdrawn_routes_end_index];
+        let withdrawn_routes = Ipv4Network::from_u8_slice(withdrawn_routes_bytes)?;
+
+        let path_attributes_start_index = withdrawn_routes_end_index + 2;
+        let total_path_attribute_length = u16::from_be_bytes(
+            bytes[withdrawn_routes_end_index..path_attributes_start_index]
+                .try_into()
+                .context(format!("Bytes: {:?}からtotal_path_attribute_lengthに変換できませんでした", &bytes))?,
+        );
+
+        let path_attributes_bytes = &bytes[path_attributes_start_index
+            ..path_attributes_start_index + total_path_attribute_length as usize];
+        let path_attributes = PathAttribute::from_u8_slice(path_attributes_bytes)?;
+        let nlri_start_index = path_attributes_start_index + total_path_attribute_length as usize;
+        let network_layer_reachability_information =
+            Ipv4Network::from_u8_slice(&bytes[nlri_start_index..])?;
+
+        Ok(Self {
+            header,
+            withdrawn_routes_length,
+            withdrawn_routes,
+            path_attributes_length: total_path_attribute_length,
+            path_attributes,
+            network_layer_reachability_information,
+        })
     }
 }
 
