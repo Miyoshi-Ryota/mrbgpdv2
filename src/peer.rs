@@ -11,7 +11,7 @@ use crate::event_queue::EventQueue;
 use crate::packets::keepalive;
 use crate::packets::message::Message;
 use crate::packets::update::UpdateMessage;
-use crate::routing::{AdjRibOut, LocRib};
+use crate::routing::{AdjRibIn, AdjRibOut, LocRib};
 use crate::state::State;
 
 /// [BGPのRFCで示されている実装方針](https://datatracker.ietf.org/doc/html/rfc4271#section-8)では、
@@ -25,6 +25,7 @@ pub struct Peer {
     config: Config,
     loc_rib: Arc<Mutex<LocRib>>,
     adj_rib_out: AdjRibOut,
+    adj_rib_in: AdjRibIn,
 }
 
 impl Peer {
@@ -32,6 +33,7 @@ impl Peer {
         let state = State::Idle;
         let event_queue = EventQueue::new();
         let adj_rib_out = AdjRibOut::new();
+        let adj_rib_in = AdjRibIn::new();
         Self {
             state,
             event_queue,
@@ -39,6 +41,7 @@ impl Peer {
             tcp_connection: None,
             loc_rib,
             adj_rib_out,
+            adj_rib_in,
         }
     }
 
@@ -48,7 +51,7 @@ impl Peer {
 
     pub async fn next(&mut self) {
         if let Some(event) = self.event_queue.dequeue() {
-            self.handle_event(&event).await;
+            self.handle_event(event).await;
         }
 
         if let Some(conn) = &mut self.tcp_connection {
@@ -68,7 +71,7 @@ impl Peer {
         }
     }
 
-    async fn handle_event(&mut self, event: &Event) {
+    async fn handle_event(&mut self, event: Event) {
         match &self.state {
             State::Idle => match event {
                 Event::ManualStart => {
@@ -130,7 +133,22 @@ impl Peer {
                             .send(Message::Update(update))
                             .await;
                     }
-                    println!("UpdateMessage send!!!!")
+                }
+                Event::UpdateMsg(update) => {
+                    self.adj_rib_in.install_from_update(update, &self.config);
+                    self.event_queue.enqueue(Event::AdjRibInChanged);
+                }
+                Event::AdjRibInChanged => {
+                    self.loc_rib
+                        .lock()
+                        .await
+                        .install_from_adj_rib_in(&self.adj_rib_in);
+                    self.loc_rib
+                        .lock()
+                        .await
+                        .write_to_kernel_routing_table()
+                        .await;
+                    self.event_queue.enqueue(Event::LocRibChanged);
                 }
                 _ => {}
             },

@@ -4,7 +4,8 @@ use std::str::FromStr;
 
 use crate::bgp_type::AutonomousSystemNumber;
 use crate::config::Config;
-use crate::error::ConfigParseError;
+use crate::error::{ConfigParseError, ConstructIpv4NetworkError, ConvertBytesToBgpMessageError};
+use crate::packets::update::UpdateMessage;
 use crate::path_attribute::{AsPath, Origin, PathAttribute};
 use anyhow::{Context, Result};
 use bytes::{BufMut, BytesMut};
@@ -76,6 +77,62 @@ impl Ipv4Network {
             _ => panic!("prefixが0..32の間ではありません！"),
         }
     }
+
+    pub fn new(addr: Ipv4Addr, prefix: u8) -> Result<Self, ConstructIpv4NetworkError> {
+        let net = ipnetwork::Ipv4Network::new(addr, prefix).context(format!(
+            "Ipv4NetworkをConstruct出来ませんでした。addr: {}, prefix: {}",
+            addr, prefix
+        ))?;
+        Ok(Self(net))
+    }
+
+    /// 本来、From Traitを実装するべきだと思うけれど、
+    /// Vec<..>に実装するのが、New Type Patternが必要になり
+    /// 大変なので変な関連関数を追加することで対応した。
+    pub fn from_u8_slice(bytes: &[u8]) -> Result<Vec<Self>, ConvertBytesToBgpMessageError> {
+        let mut networks = vec![];
+        let mut i = 0;
+        while bytes.len() > i {
+            let prefix = bytes[i];
+            i += 1;
+            if prefix == 0 {
+                networks.push(Ipv4Network::new(Ipv4Addr::new(0, 0, 0, 0), prefix).context("")?);
+            } else if (1..=8).contains(&prefix) {
+                networks
+                    .push(Ipv4Network::new(Ipv4Addr::new(bytes[i], 0, 0, 0), prefix).context("")?);
+                i += 1;
+            } else if (9..=16).contains(&prefix) {
+                networks.push(
+                    Ipv4Network::new(Ipv4Addr::new(bytes[i], bytes[i + 1], 0, 0), prefix)
+                        .context("bytes -> Ipv4に変換出来ませんでした。")?,
+                );
+                i += 2;
+            } else if (17..=24).contains(&prefix) {
+                networks.push(
+                    Ipv4Network::new(
+                        Ipv4Addr::new(bytes[i], bytes[i + 1], bytes[i + 2], 0),
+                        prefix,
+                    )
+                    .context("bytes -> Ipv4に変換出来ませんでした。")?,
+                );
+                i += 3;
+            } else if (24..=32).contains(&prefix) {
+                networks.push(
+                    Ipv4Network::new(
+                        Ipv4Addr::new(bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]),
+                        prefix,
+                    )
+                    .context("bytes -> Ipv4に変換出来ませんでした。")?,
+                );
+                i += 4;
+            } else {
+                return Err(ConvertBytesToBgpMessageError::from(anyhow::anyhow!(
+                    "bytes -> Ipv4Networkに変換が出来ませんでした。Prefixが0-32の間ではありません。"
+                )));
+            };
+        }
+        Ok(networks)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -127,6 +184,34 @@ impl LocRib {
         }
         Ok(results)
     }
+
+    pub fn install_from_adj_rib_in(&mut self, adj_rib_in: &AdjRibIn) {
+        for network in &adj_rib_in.0 {
+            self.0.push(network.clone());
+        }
+    }
+
+    pub async fn write_to_kernel_routing_table(&self) -> Result<()> {
+        let (connection, handle, _) = new_connection()?;
+        tokio::spawn(connection);
+        for e in &self.0 {
+            for p in &e.path_attributes {
+                if let PathAttribute::NextHop(gateway) = p {
+                    let dest = e.network_address;
+                    handle
+                        .route()
+                        .add()
+                        .v4()
+                        .destination_prefix(dest.ip(), dest.prefix())
+                        .gateway(*gateway)
+                        .execute()
+                        .await?;
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -143,6 +228,26 @@ impl AdjRibOut {
             route.append_as_path(config.local_as);
             route.change_next_hop(config.local_ip);
             self.0.push(route);
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AdjRibIn(pub Vec<RibEntry>);
+impl AdjRibIn {
+    pub fn new() -> Self {
+        Self(vec![])
+    }
+    pub fn install_from_update(&mut self, update: UpdateMessage, config: &Config) {
+        // ToDo: * rib_entryが重複しないようにする
+        //       * withdrawnに対応する。
+        let path_attributes = update.path_attributes;
+        for network in update.network_layer_reachability_information {
+            let rib_entry = RibEntry {
+                network_address: network,
+                path_attributes: path_attributes.clone(),
+            };
+            self.0.push(rib_entry);
         }
     }
 }
