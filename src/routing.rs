@@ -97,17 +97,17 @@ impl Ipv4Network {
             i += 1;
             if prefix == 0 {
                 networks.push(Ipv4Network::new(Ipv4Addr::new(0, 0, 0, 0), prefix).context("")?);
-            } else if 1 <= prefix && prefix <= 8 {
+            } else if (1..=8).contains(&prefix) {
                 networks
                     .push(Ipv4Network::new(Ipv4Addr::new(bytes[i], 0, 0, 0), prefix).context("")?);
                 i += 1;
-            } else if 9 <= prefix && prefix <= 16 {
+            } else if (9..=16).contains(&prefix) {
                 networks.push(
                     Ipv4Network::new(Ipv4Addr::new(bytes[i], bytes[i + 1], 0, 0), prefix)
                         .context("bytes -> Ipv4に変換出来ませんでした。")?,
                 );
                 i += 2;
-            } else if 17 <= prefix && prefix <= 24 {
+            } else if (17..=24).contains(&prefix) {
                 networks.push(
                     Ipv4Network::new(
                         Ipv4Addr::new(bytes[i], bytes[i + 1], bytes[i + 2], 0),
@@ -116,7 +116,7 @@ impl Ipv4Network {
                     .context("bytes -> Ipv4に変換出来ませんでした。")?,
                 );
                 i += 3;
-            } else if 24 <= prefix && prefix <= 32 {
+            } else if (24..=32).contains(&prefix) {
                 networks.push(
                     Ipv4Network::new(
                         Ipv4Addr::new(bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]),

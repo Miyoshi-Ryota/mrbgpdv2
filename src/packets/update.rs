@@ -102,7 +102,10 @@ impl TryFrom<BytesMut> for UpdateMessage {
         let total_path_attribute_length = u16::from_be_bytes(
             bytes[withdrawn_routes_end_index..path_attributes_start_index]
                 .try_into()
-                .context(format!("Bytes: {:?}からtotal_path_attribute_lengthに変換できませんでした", &bytes))?,
+                .context(format!(
+                    "Bytes: {:?}からtotal_path_attribute_lengthに変換できませんでした",
+                    &bytes
+                ))?,
         );
 
         let path_attributes_bytes = &bytes[path_attributes_start_index

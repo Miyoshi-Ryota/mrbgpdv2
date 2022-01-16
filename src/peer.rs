@@ -11,7 +11,7 @@ use crate::event_queue::EventQueue;
 use crate::packets::keepalive;
 use crate::packets::message::Message;
 use crate::packets::update::UpdateMessage;
-use crate::routing::{AdjRibOut, LocRib, AdjRibIn};
+use crate::routing::{AdjRibIn, AdjRibOut, LocRib};
 use crate::state::State;
 
 /// [BGPのRFCで示されている実装方針](https://datatracker.ietf.org/doc/html/rfc4271#section-8)では、
@@ -138,8 +138,7 @@ impl Peer {
                     self.adj_rib_in.install_from_update(update, &self.config);
                     self.event_queue.enqueue(Event::AdjRibInChanged);
                 }
-                Event::AdjRibInChanged => {
-                }
+                Event::AdjRibInChanged => {}
                 _ => {}
             },
         }
