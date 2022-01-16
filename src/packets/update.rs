@@ -99,7 +99,7 @@ impl From<&AdjRibOut> for Vec<UpdateMessage> {
             if let Some(routes) = hash_map.get_mut(&entry.path_attributes) {
                 routes.push(entry.network_address);
             } else {
-                hash_map.insert(entry.path_attributes.clone(), vec![]);
+                hash_map.insert(entry.path_attributes.clone(), vec![entry.network_address]);
             }
         }
 
