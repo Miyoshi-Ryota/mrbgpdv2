@@ -184,6 +184,34 @@ impl LocRib {
         }
         Ok(results)
     }
+
+    pub fn install_from_adj_rib_in(&mut self, adj_rib_in: &AdjRibIn) {
+        for network in &adj_rib_in.0 {
+            self.0.push(network.clone());
+        }
+    }
+
+    pub async fn write_to_kernel_routing_table(&self) -> Result<()> {
+        let (connection, handle, _) = new_connection()?;
+        tokio::spawn(connection);
+        for e in &self.0 {
+            for p in &e.path_attributes {
+                if let PathAttribute::NextHop(gateway) = p {
+                    let dest = e.network_address;
+                    handle
+                        .route()
+                        .add()
+                        .v4()
+                        .destination_prefix(dest.ip(), dest.prefix())
+                        .gateway(*gateway)
+                        .execute()
+                        .await?;
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]

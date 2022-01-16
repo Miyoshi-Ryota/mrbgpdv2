@@ -138,7 +138,18 @@ impl Peer {
                     self.adj_rib_in.install_from_update(update, &self.config);
                     self.event_queue.enqueue(Event::AdjRibInChanged);
                 }
-                Event::AdjRibInChanged => {}
+                Event::AdjRibInChanged => {
+                    self.loc_rib
+                        .lock()
+                        .await
+                        .install_from_adj_rib_in(&self.adj_rib_in);
+                    self.loc_rib
+                        .lock()
+                        .await
+                        .write_to_kernel_routing_table()
+                        .await;
+                    self.event_queue.enqueue(Event::LocRibChanged);
+                }
                 _ => {}
             },
         }
