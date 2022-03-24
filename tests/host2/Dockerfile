@@ -6,4 +6,4 @@ RUN rustup default nightly
 RUN cargo build
 RUN apt-get update
 RUN apt-get -y install iputils-ping
-CMD ./target/debug/mrbgpdv2 "64513 10.200.100.3 64512 10.200.100.2 passive 10.100.220.0/24"
+CMD RUST_LOG=INFO ./target/debug/mrbgpdv2 "64513 10.200.100.3 64512 10.200.100.2 passive 10.100.220.0/24"
