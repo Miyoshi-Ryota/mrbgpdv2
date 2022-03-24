@@ -6,6 +6,8 @@ use mrbgpdv2::config::Config;
 use mrbgpdv2::peer::Peer;
 use mrbgpdv2::routing::LocRib;
 use tokio::sync::Mutex;
+use tracing::info;
+use tracing_subscriber;
 
 #[tokio::main]
 async fn main() {
@@ -15,6 +17,9 @@ async fn main() {
     });
     let config = config.trim_end();
     let configs = vec![Config::from_str(config).unwrap()];
+
+    tracing_subscriber::fmt::init();
+    info!("mrbgpdv2 started with configs {:?}.", configs);
 
     // ToDo: configs[0]ではなく、アドバタイズするnetworkのvecを引数に取るようにする。
     // Configはpeerごとなのに、loc_ribはすべてのpeerで共有する。Peer毎のコンフィグから

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
+use tracing::{info, instrument};
 
 use crate::config::{Config, Mode};
 use crate::connection::Connection;
@@ -45,17 +46,22 @@ impl Peer {
         }
     }
 
+    #[instrument]
     pub fn start(&mut self) {
+        info!("peer is started.");
         self.event_queue.enqueue(Event::ManualStart);
     }
 
+    #[instrument]
     pub async fn next(&mut self) {
         if let Some(event) = self.event_queue.dequeue() {
+            info!("event is occured, event={:?}.", event);
             self.handle_event(event).await;
         }
 
         if let Some(conn) = &mut self.tcp_connection {
             if let Some(message) = conn.get_message().await {
+                info!("message is recieved, message={:?}.", message);
                 self.handle_message(message);
             }
         }
