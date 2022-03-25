@@ -1,5 +1,7 @@
 services:
   host1:
+    environment:
+      - RUST_LOG=INFO
     cap_add:
       - NET_ADMIN # NET_ADMINがないと、ルーティングテーブルの操作ができない。
     build: # Build Contextを変更して、Dockerfile, docker-compose.ymlより上位にあるファイルをCOPYできるようにしている。
@@ -13,6 +15,8 @@ services:
     depends_on:
       - host2 # host2から起動するようにしているのは、現状の実装ではBGPのpassiveモード側から起動しないとネイバーがはれないため。
   host2:
+    environment:
+      - RUST_LOG=INFO
     cap_add:
       - NET_ADMIN # NET_ADMINがないと、ルーティングテーブルの操作ができない。
     build: # Build Contextを変更して、Dockerfile, docker-compose.ymlより上位にあるファイルをCOPYできるようにしている。
