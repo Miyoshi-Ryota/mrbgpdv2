@@ -4,4 +4,4 @@ WORKDIR /mrbgpdv2
 COPY . .
 RUN rustup default nightly && \
     cargo build
-CMD ["RUST_LOG=INFO", "./target/debug/mrbgpdv2", "64512 10.200.100.2 64513 10.200.100.3 active"]
+CMD ["./target/debug/mrbgpdv2", "64512 10.200.100.2 64513 10.200.100.3 active"]
