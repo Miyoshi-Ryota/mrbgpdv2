@@ -1,3 +1,5 @@
+use std::collections::hash_map::Keys;
+use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
@@ -135,8 +137,39 @@ impl Ipv4Network {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+pub enum RibEntryStatus {
+    New,
+    UnChanged,
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct LocRib(Vec<RibEntry>);
+pub struct Rib(HashMap<RibEntry, RibEntryStatus>);
+impl Rib {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+    pub fn insert(&mut self, entry: RibEntry) {
+        self.0.entry(entry).or_insert(RibEntryStatus::New);
+    }
+
+    pub fn update_to_all_unchanged(&mut self) {
+        self.0
+            .iter_mut()
+            .for_each(|(_, v)| *v = RibEntryStatus::UnChanged);
+    }
+
+    pub fn routes(&self) -> Keys<'_, RibEntry, RibEntryStatus> {
+        self.0.keys()
+    }
+
+    pub fn does_contain_new_route(&self) -> bool {
+        self.0.values().map(|v| &RibEntryStatus::New == v).any(|v| v)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct LocRib(pub Rib);
 
 impl LocRib {
     pub async fn new(config: &Config) -> Result<Self> {
@@ -149,11 +182,11 @@ impl LocRib {
             PathAttribute::NextHop(config.local_ip),
         ];
 
-        let mut rib = vec![];
+        let mut rib = Rib::new();
         for network in &config.networks {
             let routes = Self::lookup_kernel_routing_table(*network).await?;
             for route in routes {
-                rib.push(RibEntry {
+                rib.insert(RibEntry {
                     network_address: route,
                     path_attributes: path_attributes.clone(),
                 })
@@ -186,15 +219,15 @@ impl LocRib {
     }
 
     pub fn install_from_adj_rib_in(&mut self, adj_rib_in: &AdjRibIn) {
-        for network in &adj_rib_in.0 {
-            self.0.push(network.clone());
+        for network in adj_rib_in.0.routes() {
+            self.0.insert(network.clone());
         }
     }
 
     pub async fn write_to_kernel_routing_table(&self) -> Result<()> {
         let (connection, handle, _) = new_connection()?;
         tokio::spawn(connection);
-        for e in &self.0 {
+        for e in self.0.routes() {
             for p in &e.path_attributes {
                 if let PathAttribute::NextHop(gateway) = p {
                     let dest = e.network_address;
@@ -215,28 +248,28 @@ impl LocRib {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct AdjRibOut(pub Vec<RibEntry>);
+pub struct AdjRibOut(pub Rib);
 
 impl AdjRibOut {
     pub fn new() -> Self {
-        Self(vec![])
+        Self(Rib::new())
     }
 
     pub fn install_from_loc_rib(&mut self, loc_rib: &LocRib, config: &Config) {
-        for r in &loc_rib.0 {
+        for r in loc_rib.0.routes() {
             let mut route = r.clone();
             route.append_as_path(config.local_as);
             route.change_next_hop(config.local_ip);
-            self.0.push(route);
+            self.0.insert(route);
         }
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct AdjRibIn(pub Vec<RibEntry>);
+pub struct AdjRibIn(pub Rib);
 impl AdjRibIn {
     pub fn new() -> Self {
-        Self(vec![])
+        Self(Rib::new())
     }
     pub fn install_from_update(&mut self, update: UpdateMessage, config: &Config) {
         // ToDo: * rib_entryが重複しないようにする
@@ -247,12 +280,13 @@ impl AdjRibIn {
                 network_address: network,
                 path_attributes: path_attributes.clone(),
             };
-            self.0.push(rib_entry);
+            // PathAttributesが変わってたらインストールする必要がある。
+            self.0.insert(rib_entry);
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct RibEntry {
     pub network_address: Ipv4Network,
     pub path_attributes: Vec<PathAttribute>,
@@ -305,14 +339,18 @@ mod tests {
         let mut adj_rib_out = AdjRibOut::new();
         adj_rib_out.install_from_loc_rib(&mut loc_rib, &config);
 
-        let expected_adj_rib_out = AdjRibOut(vec![RibEntry {
+        println!("adj_rib_out is created!");
+        println!("expected_adj_rib_out is creating!");
+        let mut rib = Rib::new();
+        rib.insert(RibEntry {
             network_address: "10.100.220.0/24".parse().unwrap(),
             path_attributes: vec![
                 PathAttribute::Origin(Origin::Igp),
                 PathAttribute::AsPath(AsPath::AsSequence(vec![64513.into()])),
                 PathAttribute::NextHop("10.200.100.3".parse().unwrap()),
             ],
-        }]);
+        });
+        let expected_adj_rib_out = AdjRibOut(rib);
 
         assert_eq!(adj_rib_out, expected_adj_rib_out);
     }
