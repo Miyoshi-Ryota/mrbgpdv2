@@ -169,7 +169,10 @@ impl Rib {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct LocRib(pub Rib);
+pub struct LocRib {
+    pub rib: Rib,
+    local_as_number: AutonomousSystemNumber,
+}
 
 impl LocRib {
     pub async fn new(config: &Config) -> Result<Self> {
@@ -192,7 +195,10 @@ impl LocRib {
                 })
             }
         }
-        Ok(Self(rib))
+        Ok(Self {
+            rib,
+            local_as_number: config.local_as,
+        })
     }
 
     async fn lookup_kernel_routing_table(
@@ -218,16 +224,21 @@ impl LocRib {
         Ok(results)
     }
 
+    /// AdjRibInから必要なルートをインストールする。
+    /// この時、自ASが含まれているルートはインストールしない。
+    /// 参考: 9.1.2.  Phase 2: Route Selection in RFC4271.
     pub fn install_from_adj_rib_in(&mut self, adj_rib_in: &AdjRibIn) {
-        for network in adj_rib_in.0.routes() {
-            self.0.insert(network.clone());
-        }
+        adj_rib_in
+            .0
+            .routes()
+            .filter(|entry| !entry.does_contain_as(self.local_as_number))
+            .for_each(|entry| self.rib.insert(entry.clone()));
     }
 
     pub async fn write_to_kernel_routing_table(&self) -> Result<()> {
         let (connection, handle, _) = new_connection()?;
         tokio::spawn(connection);
-        for e in self.0.routes() {
+        for e in self.rib.routes() {
             for p in &e.path_attributes {
                 if let PathAttribute::NextHop(gateway) = p {
                     let dest = e.network_address;
@@ -256,7 +267,7 @@ impl AdjRibOut {
     }
 
     pub fn install_from_loc_rib(&mut self, loc_rib: &LocRib, config: &Config) {
-        for r in loc_rib.0.routes() {
+        for r in loc_rib.rib.routes() {
             let mut route = r.clone();
             route.append_as_path(config.local_as);
             route.change_next_hop(config.local_ip);
@@ -307,6 +318,15 @@ impl RibEntry {
                 *addr = next_hop;
             }
         }
+    }
+
+    fn does_contain_as(&self, as_number: AutonomousSystemNumber) -> bool {
+        for path_attribute in &self.path_attributes {
+            if let PathAttribute::AsPath(as_path) = path_attribute {
+                return as_path.does_contain(as_number);
+            }
+        }
+        false
     }
 }
 

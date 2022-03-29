@@ -164,7 +164,7 @@ impl Peer {
                         .await
                         .install_from_adj_rib_in(&self.adj_rib_in);
                     debug!("after install routes from adj_rib to loc_rib: {:?}.", self.loc_rib.lock().await);
-                    if self.loc_rib.lock().await.0.does_contain_new_route() {
+                    if self.loc_rib.lock().await.rib.does_contain_new_route() {
                         info!("loc_rib is updated.");
                         self.loc_rib
                             .lock()
@@ -172,7 +172,7 @@ impl Peer {
                             .write_to_kernel_routing_table()
                             .await;
                         self.event_queue.enqueue(Event::LocRibChanged);
-                        self.loc_rib.lock().await.0.update_to_all_unchanged();
+                        self.loc_rib.lock().await.rib.update_to_all_unchanged();
                     }
                 }
                 _ => {}
