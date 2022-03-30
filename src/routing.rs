@@ -266,8 +266,14 @@ impl AdjRibOut {
         Self(Rib::new())
     }
 
+    /// LocRibから必要なルートをインストールする。
+    /// この時、Remote AS番号が含まれているルートはインストールしない。
     pub fn install_from_loc_rib(&mut self, loc_rib: &LocRib, config: &Config) {
-        for r in loc_rib.rib.routes() {
+        for r in loc_rib
+            .rib
+            .routes()
+            .filter(|entry| !entry.does_contain_as(config.remote_as))
+        {
             let mut route = r.clone();
             route.append_as_path(config.local_as);
             route.change_next_hop(config.local_ip);
