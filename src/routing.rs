@@ -164,7 +164,10 @@ impl Rib {
     }
 
     pub fn does_contain_new_route(&self) -> bool {
-        self.0.values().map(|v| &RibEntryStatus::New == v).any(|v| v)
+        self.0
+            .values()
+            .map(|v| &RibEntryStatus::New == v)
+            .any(|v| v)
     }
 }
 
