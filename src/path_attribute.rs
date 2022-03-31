@@ -182,8 +182,7 @@ impl From<&AsPath> for BytesMut {
                 bytes.put_u8(number_of_ases as u8);
                 bytes.put(
                     &s.iter()
-                        .map(|a| u16::from(*a).to_be_bytes())
-                        .flatten()
+                        .flat_map(|a| u16::from(*a).to_be_bytes())
                         .collect::<Vec<u8>>()[..],
                 );
                 bytes
@@ -197,8 +196,7 @@ impl From<&AsPath> for BytesMut {
                 bytes.put_u8(number_of_ases as u8);
                 bytes.put(
                     &s.iter()
-                        .map(|a| u16::from(*a).to_be_bytes())
-                        .flatten()
+                        .flat_map(|a| u16::from(*a).to_be_bytes())
                         .collect::<Vec<u8>>()[..],
                 );
                 bytes

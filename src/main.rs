@@ -7,7 +7,6 @@ use mrbgpdv2::peer::Peer;
 use mrbgpdv2::routing::LocRib;
 use tokio::sync::Mutex;
 use tracing::info;
-use tracing_subscriber;
 
 #[tokio::main]
 async fn main() {
