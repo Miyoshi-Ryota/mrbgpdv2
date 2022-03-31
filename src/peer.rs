@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
-use tracing::{info, debug, instrument};
+use tracing::{debug, info, instrument};
 
 use crate::config::{Config, Mode};
 use crate::connection::Connection;
@@ -126,11 +126,17 @@ impl Peer {
             },
             State::Established => match event {
                 Event::Established | Event::LocRibChanged => {
-                    debug!("before install routes from loc_rib to adj_rib_out: {:?}.", self.adj_rib_out);
+                    debug!(
+                        "before install routes from loc_rib to adj_rib_out: {:?}.",
+                        self.adj_rib_out
+                    );
                     let loc_rib = self.loc_rib.lock().await;
                     self.adj_rib_out
                         .install_from_loc_rib(&loc_rib, &self.config);
-                    debug!("after install routes from loc_rib to adj_rib_out: {:?}.", self.adj_rib_out);
+                    debug!(
+                        "after install routes from loc_rib to adj_rib_out: {:?}.",
+                        self.adj_rib_out
+                    );
                     if self.adj_rib_out.0.does_contain_new_route() {
                         debug!("adj_rib_out is updated.");
                         self.event_queue.enqueue(Event::AdjRibOutChanged);
@@ -148,9 +154,15 @@ impl Peer {
                     }
                 }
                 Event::UpdateMsg(update) => {
-                    debug!("before install routes in update message to adj_rib_in: {:?}.", self.adj_rib_in);
+                    debug!(
+                        "before install routes in update message to adj_rib_in: {:?}.",
+                        self.adj_rib_in
+                    );
                     self.adj_rib_in.install_from_update(update, &self.config);
-                    debug!("after install routes in update message to adj_rib_in: {:?}.", self.adj_rib_in);
+                    debug!(
+                        "after install routes in update message to adj_rib_in: {:?}.",
+                        self.adj_rib_in
+                    );
                     if self.adj_rib_in.0.does_contain_new_route() {
                         debug!("adj_rib in is updated.");
                         self.event_queue.enqueue(Event::AdjRibInChanged);
@@ -158,12 +170,18 @@ impl Peer {
                     }
                 }
                 Event::AdjRibInChanged => {
-                    debug!("before install routes from adj_rib_in to loc_rib: {:?}.", self.loc_rib.lock().await);
+                    debug!(
+                        "before install routes from adj_rib_in to loc_rib: {:?}.",
+                        self.loc_rib.lock().await
+                    );
                     self.loc_rib
                         .lock()
                         .await
                         .install_from_adj_rib_in(&self.adj_rib_in);
-                    debug!("after install routes from adj_rib to loc_rib: {:?}.", self.loc_rib.lock().await);
+                    debug!(
+                        "after install routes from adj_rib to loc_rib: {:?}.",
+                        self.loc_rib.lock().await
+                    );
                     if self.loc_rib.lock().await.rib.does_contain_new_route() {
                         info!("loc_rib is updated.");
                         self.loc_rib
