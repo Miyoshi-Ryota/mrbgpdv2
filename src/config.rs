@@ -9,7 +9,7 @@ use std::str::FromStr;
 pub struct Config {
     pub local_as: AutonomousSystemNumber,
     pub local_ip: Ipv4Addr,
-    remote_as: AutonomousSystemNumber,
+    pub remote_as: AutonomousSystemNumber,
     pub remote_ip: Ipv4Addr,
     pub mode: Mode,
     pub networks: Vec<Ipv4Network>,

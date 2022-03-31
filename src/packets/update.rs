@@ -131,7 +131,7 @@ impl TryFrom<BytesMut> for UpdateMessage {
 impl From<&AdjRibOut> for Vec<UpdateMessage> {
     fn from(rib: &AdjRibOut) -> Self {
         let mut hash_map: HashMap<Vec<PathAttribute>, Vec<Ipv4Network>> = HashMap::new();
-        for entry in &rib.0 {
+        for entry in rib.0.routes() {
             if let Some(routes) = hash_map.get_mut(&entry.path_attributes) {
                 routes.push(entry.network_address);
             } else {
@@ -150,6 +150,8 @@ impl From<&AdjRibOut> for Vec<UpdateMessage> {
 
 #[cfg(test)]
 mod tests {
+    use crate::routing::Rib;
+
     use super::*;
 
     async fn update_message_from_adj_rib_out() {
@@ -162,10 +164,15 @@ mod tests {
             PathAttribute::AsPath(AsPath::AsSequence(vec![64513.into()])),
             PathAttribute::NextHop("10.200.100.3".parse().unwrap()),
         ];
-        let adj_rib_out = AdjRibOut(vec![RibEntry {
+
+        let mut rib = Rib::new();
+        vec![RibEntry {
             network_address: "10.100.220.0/24".parse().unwrap(),
             path_attributes: path_attributes.clone(),
-        }]);
+        }]
+        .into_iter()
+        .map(|e| rib.insert(e));
+        let adj_rib_out = AdjRibOut(rib);
         let expected_update_message = UpdateMessage::new(
             path_attributes,
             vec!["10.100.220.0/24".parse().unwrap()],
