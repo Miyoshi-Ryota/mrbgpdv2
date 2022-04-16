@@ -279,10 +279,49 @@ impl AdjRibOut {
             .filter(|entry| !entry.does_contain_as(config.remote_as))
         {
             let mut route = Arc::clone(&r);
-            route.append_as_path(config.local_as);
-            route.change_next_hop(config.local_ip);
             self.0.insert(route);
         }
+    }
+
+    /// AdjRibOutからUpdateMessageに変換する。
+    /// PathAttributeごとにUpdateMessageが分かれるためVec<UpdateMessage>の戻り値にしている。
+    pub fn create_update_messages(
+        &self,
+        local_ip: Ipv4Addr,
+        local_as: AutonomousSystemNumber,
+    ) -> Vec<UpdateMessage> {
+        let mut hash_map: HashMap<Arc<Vec<PathAttribute>>, Vec<Ipv4Network>> = HashMap::new();
+        for entry in self.0.routes() {
+            if let Some(routes) = hash_map.get_mut(&entry.path_attributes) {
+                routes.push(entry.network_address);
+            } else {
+                hash_map.insert(
+                    Arc::clone(&entry.path_attributes),
+                    vec![entry.network_address],
+                );
+            }
+        }
+
+        let mut updates = vec![];
+        for (path_attributes, routes) in hash_map.into_iter() {
+            let mut path_attributes = Arc::<Vec<PathAttribute>>::unwrap_or_clone(path_attributes);
+            // PathAttributeを二つ変更する。local ip, as_path add;
+            for p in path_attributes.iter_mut() {
+                if let PathAttribute::NextHop(n) = p {
+                    *n = local_ip
+                }
+                if let PathAttribute::AsPath(ases) = p {
+                    ases.push(local_as)
+                }
+            }
+
+            updates.push(UpdateMessage::new(
+                Arc::new(path_attributes),
+                routes,
+                vec![],
+            ));
+        }
+        updates
     }
 }
 
@@ -313,25 +352,7 @@ pub struct RibEntry {
     pub path_attributes: Arc<Vec<PathAttribute>>,
 }
 
-
-// ToDo: これらのメソッド消す？考える。データ構造をメモの通りに変更した。
 impl RibEntry {
-    fn append_as_path(&mut self, as_number: AutonomousSystemNumber) {
-        for path_attribute in &mut self.path_attributes {
-            if let PathAttribute::AsPath(as_path) = path_attribute {
-                as_path.add(as_number)
-            };
-        }
-    }
-
-    fn change_next_hop(&mut self, next_hop: Ipv4Addr) {
-        for path_attribute in &mut self.path_attributes {
-            if let PathAttribute::NextHop(addr) = path_attribute {
-                *addr = next_hop;
-            }
-        }
-    }
-
     fn does_contain_as(&self, as_number: AutonomousSystemNumber) -> bool {
         for path_attribute in self.path_attributes.iter() {
             if let PathAttribute::AsPath(as_path) = path_attribute {
@@ -376,9 +397,9 @@ mod tests {
         let mut rib = Rib::new();
         rib.insert(Arc::new(RibEntry {
             network_address: "10.100.220.0/24".parse().unwrap(),
-            path_attributes: Arc::new( vec![
+            path_attributes: Arc::new(vec![
                 PathAttribute::Origin(Origin::Igp),
-                PathAttribute::AsPath(AsPath::AsSequence(vec![64513.into()])),
+                PathAttribute::AsPath(AsPath::AsSequence(vec![])),
                 PathAttribute::NextHop("10.200.100.3".parse().unwrap()),
             ]),
         }));

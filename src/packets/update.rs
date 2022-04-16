@@ -27,7 +27,7 @@ pub struct UpdateMessage {
 }
 
 impl UpdateMessage {
-    fn new(
+    pub fn new(
         path_attributes: Arc<Vec<PathAttribute>>,
         network_layer_reachability_information: Vec<Ipv4Network>,
         withdrawn_routes: Vec<Ipv4Network>,
@@ -127,31 +127,9 @@ impl TryFrom<BytesMut> for UpdateMessage {
     }
 }
 
-/// AdjRibOutからUpdateMessageに変換する。
-/// PathAttributeごとにUpdateMessageが分かれるためVec<UpdateMessage>の戻り値にしている。
-impl From<&AdjRibOut> for Vec<UpdateMessage> {
-    fn from(rib: &AdjRibOut) -> Self {
-        let mut hash_map: HashMap<Arc<Vec<PathAttribute>>, Vec<Ipv4Network>> = HashMap::new();
-        for entry in rib.0.routes() {
-            if let Some(routes) = hash_map.get_mut(&entry.path_attributes) {
-                routes.push(entry.network_address);
-            } else {
-                hash_map.insert(Arc::clone(&entry.path_attributes), vec![entry.network_address]);
-            }
-        }
-
-        let mut updates = vec![];
-        for (path_attributes, routes) in hash_map.into_iter() {
-            // ToDo: withdrawn routesに対応する。
-            updates.push(UpdateMessage::new(path_attributes, routes, vec![]));
-        }
-        updates
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::routing::Rib;
+    use crate::{bgp_type::AutonomousSystemNumber, routing::Rib};
 
     use super::*;
 
@@ -160,26 +138,38 @@ mod tests {
         // 本実装では開発機, テスト実施機に10.200.100.0/24に属するIPが付与されていることを仮定している。
         // docker-composeした環境のhost2で実行することを仮定している。
 
-        let path_attributes = Arc::new(vec![
+        let some_as: AutonomousSystemNumber = 64513.into();
+        let some_ip: Ipv4Addr = "10.0.100.3".parse().unwrap();
+
+        let local_as: AutonomousSystemNumber = 64514.into();
+        let local_ip: Ipv4Addr = "10.200.100.3".parse().unwrap();
+
+        let rib_path_attributes = Arc::new(vec![
             PathAttribute::Origin(Origin::Igp),
-            PathAttribute::AsPath(AsPath::AsSequence(vec![64513.into()])),
-            PathAttribute::NextHop("10.200.100.3".parse().unwrap()),
+            PathAttribute::AsPath(AsPath::AsSequence(vec![some_as])),
+            PathAttribute::NextHop(some_ip),
         ]);
 
+        let update_message_path_attributes = Arc::new(vec![
+            PathAttribute::Origin(Origin::Igp),
+            PathAttribute::AsPath(AsPath::AsSequence(vec![some_as, local_as])),
+            PathAttribute::NextHop(local_ip),
+        ]);
         let mut rib = Rib::new();
 
         rib.insert(Arc::new(RibEntry {
             network_address: "10.100.220.0/24".parse().unwrap(),
-            path_attributes: Arc::clone(&path_attributes),
+            path_attributes: rib_path_attributes,
         }));
+
         let adj_rib_out = AdjRibOut(rib);
         let expected_update_message = UpdateMessage::new(
-            path_attributes,
+            update_message_path_attributes,
             vec!["10.100.220.0/24".parse().unwrap()],
             vec![],
         );
         assert_eq!(
-            Vec::<UpdateMessage>::from(&adj_rib_out),
+            adj_rib_out.create_update_messages(local_ip, local_as),
             vec![expected_update_message]
         );
     }
