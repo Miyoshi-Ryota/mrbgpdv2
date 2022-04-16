@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
+use std::sync::Arc;
 
 use crate::bgp_type::AutonomousSystemNumber;
 use crate::config::Config;
@@ -144,12 +145,12 @@ pub enum RibEntryStatus {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Rib(HashMap<RibEntry, RibEntryStatus>);
+pub struct Rib(HashMap<Arc<RibEntry>, RibEntryStatus>);
 impl Rib {
     pub fn new() -> Self {
         Self(HashMap::new())
     }
-    pub fn insert(&mut self, entry: RibEntry) {
+    pub fn insert(&mut self, entry: Arc<RibEntry>) {
         self.0.entry(entry).or_insert(RibEntryStatus::New);
     }
 
@@ -159,7 +160,7 @@ impl Rib {
             .for_each(|(_, v)| *v = RibEntryStatus::UnChanged);
     }
 
-    pub fn routes(&self) -> Keys<'_, RibEntry, RibEntryStatus> {
+    pub fn routes(&self) -> Keys<'_, Arc<RibEntry>, RibEntryStatus> {
         self.0.keys()
     }
 
@@ -179,23 +180,23 @@ pub struct LocRib {
 
 impl LocRib {
     pub async fn new(config: &Config) -> Result<Self> {
-        let path_attributes = vec![
+        let path_attributes = Arc::new(vec![
             PathAttribute::Origin(Origin::Igp),
             // AS Pathは、ほかのピアから受信したルートと統一的に扱うために、
             // LocRib -> AdjRibOutにルートを送るときに、自分のAS番号を
             // 追加するので、ここでは空にしておく。
             PathAttribute::AsPath(AsPath::AsSequence(vec![])),
             PathAttribute::NextHop(config.local_ip),
-        ];
+        ]);
 
         let mut rib = Rib::new();
         for network in &config.networks {
             let routes = Self::lookup_kernel_routing_table(*network).await?;
             for route in routes {
-                rib.insert(RibEntry {
+                rib.insert(Arc::new(RibEntry {
                     network_address: route,
-                    path_attributes: path_attributes.clone(),
-                })
+                    path_attributes: Arc::clone(&path_attributes),
+                }))
             }
         }
         Ok(Self {
@@ -235,14 +236,14 @@ impl LocRib {
             .0
             .routes()
             .filter(|entry| !entry.does_contain_as(self.local_as_number))
-            .for_each(|entry| self.rib.insert(entry.clone()));
+            .for_each(|entry| self.rib.insert(Arc::clone(&entry)));
     }
 
     pub async fn write_to_kernel_routing_table(&self) -> Result<()> {
         let (connection, handle, _) = new_connection()?;
         tokio::spawn(connection);
         for e in self.rib.routes() {
-            for p in &e.path_attributes {
+            for p in e.path_attributes.iter() {
                 if let PathAttribute::NextHop(gateway) = p {
                     let dest = e.network_address;
                     handle
@@ -277,7 +278,7 @@ impl AdjRibOut {
             .routes()
             .filter(|entry| !entry.does_contain_as(config.remote_as))
         {
-            let mut route = r.clone();
+            let mut route = Arc::clone(&r);
             route.append_as_path(config.local_as);
             route.change_next_hop(config.local_ip);
             self.0.insert(route);
@@ -296,10 +297,10 @@ impl AdjRibIn {
         //       * withdrawnに対応する。
         let path_attributes = update.path_attributes;
         for network in update.network_layer_reachability_information {
-            let rib_entry = RibEntry {
+            let rib_entry = Arc::new(RibEntry {
                 network_address: network,
-                path_attributes: path_attributes.clone(),
-            };
+                path_attributes: Arc::clone(&path_attributes),
+            });
             // PathAttributesが変わってたらインストールする必要がある。
             self.0.insert(rib_entry);
         }
@@ -309,9 +310,11 @@ impl AdjRibIn {
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct RibEntry {
     pub network_address: Ipv4Network,
-    pub path_attributes: Vec<PathAttribute>,
+    pub path_attributes: Arc<Vec<PathAttribute>>,
 }
 
+
+// ToDo: これらのメソッド消す？考える。データ構造をメモの通りに変更した。
 impl RibEntry {
     fn append_as_path(&mut self, as_number: AutonomousSystemNumber) {
         for path_attribute in &mut self.path_attributes {
@@ -330,7 +333,7 @@ impl RibEntry {
     }
 
     fn does_contain_as(&self, as_number: AutonomousSystemNumber) -> bool {
-        for path_attribute in &self.path_attributes {
+        for path_attribute in self.path_attributes.iter() {
             if let PathAttribute::AsPath(as_path) = path_attribute {
                 return as_path.does_contain(as_number);
             }
@@ -371,14 +374,14 @@ mod tests {
         println!("adj_rib_out is created!");
         println!("expected_adj_rib_out is creating!");
         let mut rib = Rib::new();
-        rib.insert(RibEntry {
+        rib.insert(Arc::new(RibEntry {
             network_address: "10.100.220.0/24".parse().unwrap(),
-            path_attributes: vec![
+            path_attributes: Arc::new( vec![
                 PathAttribute::Origin(Origin::Igp),
                 PathAttribute::AsPath(AsPath::AsSequence(vec![64513.into()])),
                 PathAttribute::NextHop("10.200.100.3".parse().unwrap()),
-            ],
-        });
+            ]),
+        }));
         let expected_adj_rib_out = AdjRibOut(rib);
 
         assert_eq!(adj_rib_out, expected_adj_rib_out);
