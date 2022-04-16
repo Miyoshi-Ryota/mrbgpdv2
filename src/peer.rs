@@ -144,7 +144,9 @@ impl Peer {
                     }
                 }
                 Event::AdjRibOutChanged => {
-                    let updates: Vec<UpdateMessage> = (&self.adj_rib_out).into();
+                    let updates: Vec<UpdateMessage> = self
+                        .adj_rib_out
+                        .create_update_messages(self.config.local_ip, self.config.local_as);
                     for update in updates {
                         self.tcp_connection
                             .as_mut()

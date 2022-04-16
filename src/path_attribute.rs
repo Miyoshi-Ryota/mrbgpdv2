@@ -221,6 +221,15 @@ impl AsPath {
             AsPath::AsSet(set) => set.contains(&as_path),
         }
     }
+
+    pub fn push(&mut self, as_path: AutonomousSystemNumber) {
+        match self {
+            AsPath::AsSequence(seq) => seq.push(as_path),
+            AsPath::AsSet(set) => {
+                set.insert(as_path);
+            }
+        }
+    }
 }
 
 impl TryFrom<&[u8]> for AsPath {
