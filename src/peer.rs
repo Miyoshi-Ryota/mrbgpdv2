@@ -96,7 +96,7 @@ impl Peer {
                 Event::TcpConnectionConfirmed => {
                     self.tcp_connection
                         .as_mut()
-                        .unwrap()
+                        .expect("TCP Connectionが確立できていません。")
                         .send(Message::new_open(
                             self.config.local_as,
                             self.config.local_ip,
@@ -110,7 +110,7 @@ impl Peer {
                 Event::BgpOpen(open) => {
                     self.tcp_connection
                         .as_mut()
-                        .unwrap()
+                        .expect("TCP Connectionが確立できていません。")
                         .send(Message::new_keepalive())
                         .await;
                     self.state = State::OpenConfirm;
@@ -150,7 +150,7 @@ impl Peer {
                     for update in updates {
                         self.tcp_connection
                             .as_mut()
-                            .unwrap()
+                            .expect("TCP Connectionが確立できていません。")
                             .send(Message::Update(update))
                             .await;
                     }
