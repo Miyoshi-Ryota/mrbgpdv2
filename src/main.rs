@@ -15,7 +15,8 @@ async fn main() {
         acc
     });
     let config = config.trim_end();
-    let configs = vec![Config::from_str(config).unwrap()];
+    let configs =
+        vec![Config::from_str(config).expect("引数からConfig構造体の作成に失敗しました。")];
 
     tracing_subscriber::fmt::init();
     info!("mrbgpdv2 started with configs {:?}.", configs);
@@ -23,7 +24,11 @@ async fn main() {
     // ToDo: configs[0]ではなく、アドバタイズするnetworkのvecを引数に取るようにする。
     // Configはpeerごとなのに、loc_ribはすべてのpeerで共有する。Peer毎のコンフィグから
     // 共有するものを生成することに違和感があるため。
-    let loc_rib = Arc::new(Mutex::new(LocRib::new(&configs[0]).await.unwrap()));
+    let loc_rib = Arc::new(Mutex::new(
+        LocRib::new(&configs[0])
+            .await
+            .expect("LocRibの生成に失敗しました。"),
+    ));
     let mut peers: Vec<Peer> = configs
         .into_iter()
         .map(|c| Peer::new(c, Arc::clone(&loc_rib)))
