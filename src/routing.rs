@@ -332,8 +332,7 @@ impl AdjRibIn {
         Self(Rib::new())
     }
     pub fn install_from_update(&mut self, update: UpdateMessage, config: &Config) {
-        // ToDo: * rib_entryが重複しないようにする
-        //       * withdrawnに対応する。
+        // ToDo: withdrawnに対応する。
         let path_attributes = update.path_attributes;
         for network in update.network_layer_reachability_information {
             let rib_entry = Arc::new(RibEntry {
