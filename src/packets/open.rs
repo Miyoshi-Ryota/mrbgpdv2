@@ -49,7 +49,8 @@ impl TryFrom<BytesMut> for OpenMessage {
                 &bytes[20..22]
             ))?,
         ));
-        let hold_time = HoldTime::from(u16::from_be_bytes(bytes[22..24].try_into().context(
+        let hold_time = HoldTime::from(
+            u16::from_be_bytes(bytes[22..24].try_into().context(
             format!(
                 "HoldTimeのbytes表現`{:?}`からHoldTimeに変換できませんでした。",
                 &bytes[22..24]

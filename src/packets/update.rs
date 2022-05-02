@@ -50,7 +50,9 @@ impl UpdateMessage {
                 + path_attributes_length
                 + network_layer_reachability_information_length
                 + withdrawn_routes_length
-                + 4, // path_attributes_length(u16)とwithdrawn_routes_length(u16)のbytes表現分,
+                // +4はpath_attributes_length(u16)と
+                // withdrawn_routes_length(u16)のbytes表現分,
+                + 4,
             MessageType::Update,
         );
         Self {

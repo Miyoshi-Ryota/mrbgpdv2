@@ -26,7 +26,8 @@ impl TryFrom<BytesMut> for Message {
 
         if bytes.len() < header_bytes_length {
             return Err(Self::Error::from(anyhow::anyhow!(
-                "BytesからMessageに変換できませんでした。Bytesの長さが最小の長さより短いです。"
+                "BytesからMessageに変換できませんでした。\
+                 Bytesの長さが最小の長さより短いです。"
             )));
         };
 

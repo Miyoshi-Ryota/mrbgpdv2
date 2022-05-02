@@ -54,7 +54,11 @@ impl TryFrom<u8> for MessageType {
             1 => Ok(MessageType::Open),
             2 => Ok(MessageType::Update),
             4 => Ok(MessageType::Keepalive),
-            _ => Err(Self::Error::from(anyhow::anyhow!("Num {0}をBGP Message Typeに変換することが出来ませんでした。numは1-4が期待されています。", num))),
+            _ => {
+                Err(Self::Error::from(anyhow::anyhow!(
+                "Num {0}をBGP Message Typeに変換することが出来ませんでした。\
+                 numは1-4が期待されています。", num)))
+            }
         }
     }
 }

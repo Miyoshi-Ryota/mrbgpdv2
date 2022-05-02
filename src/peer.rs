@@ -15,7 +15,8 @@ use crate::packets::update::UpdateMessage;
 use crate::routing::{AdjRibIn, AdjRibOut, LocRib};
 use crate::state::State;
 
-/// [BGPのRFCで示されている実装方針](https://datatracker.ietf.org/doc/html/rfc4271#section-8)では、
+/// BGPのRFCで示されている実装方針
+/// (https://datatracker.ietf.org/doc/html/rfc4271#section-8)では、
 /// 1つのPeerを1つのイベント駆動ステートマシンとして実装しています。
 /// Peer構造体はRFC内で示されている実装方針に従ったイベント駆動ステートマシンです。
 #[derive(Debug)]
@@ -136,14 +137,16 @@ impl Peer {
             State::Established => match event {
                 Event::Established | Event::LocRibChanged => {
                     debug!(
-                        "before install routes from loc_rib to adj_rib_out: {:?}.",
+                        "before install routes from loc_rib \
+                         to adj_rib_out: {:?}.",
                         self.adj_rib_out
                     );
                     let loc_rib = self.loc_rib.lock().await;
                     self.adj_rib_out
                         .install_from_loc_rib(&loc_rib, &self.config);
                     debug!(
-                        "after install routes from loc_rib to adj_rib_out: {:?}.",
+                        "after install routes from loc_rib \
+                         to adj_rib_out: {:?}.",
                         self.adj_rib_out
                     );
                     if self.adj_rib_out.0.does_contain_new_route() {
@@ -168,12 +171,14 @@ impl Peer {
                 }
                 Event::UpdateMsg(update) => {
                     debug!(
-                        "before install routes in update message to adj_rib_in: {:?}.",
+                        "before install routes in \
+                         update message to adj_rib_in: {:?}.",
                         self.adj_rib_in
                     );
                     self.adj_rib_in.install_from_update(update, &self.config);
                     debug!(
-                        "after install routes in update message to adj_rib_in: {:?}.",
+                        "after install routes in update message \
+                         to adj_rib_in: {:?}.",
                         self.adj_rib_in
                     );
                     if self.adj_rib_in.0.does_contain_new_route() {
@@ -184,7 +189,8 @@ impl Peer {
                 }
                 Event::AdjRibInChanged => {
                     debug!(
-                        "before install routes from adj_rib_in to loc_rib: {:?}.",
+                        "before install routes from adj_rib_in \
+                         to loc_rib: {:?}.",
                         self.loc_rib.lock().await
                     );
                     self.loc_rib
