@@ -27,7 +27,9 @@ impl FromStr for Mode {
         match s {
             "passive" | "Passive" => Ok(Mode::Passive),
             "active" | "Active" => Ok(Mode::Active),
-            _ => Err(ConfigParseError::from(anyhow::anyhow!("cannot parse {s}"))),
+            _ => Err(ConfigParseError::from(anyhow::anyhow!(
+                "cannot parse {s}"
+            ))),
         }
     }
 }

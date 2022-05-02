@@ -1,4 +1,6 @@
-use crate::error::{ConvertBgpMessageToBytesError, ConvertBytesToBgpMessageError};
+use crate::error::{
+    ConvertBgpMessageToBytesError, ConvertBytesToBgpMessageError,
+};
 use bytes::{BufMut, BytesMut};
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]

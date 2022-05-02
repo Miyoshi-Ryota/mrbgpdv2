@@ -20,7 +20,10 @@ pub struct OpenMessage {
 }
 
 impl OpenMessage {
-    pub fn new(my_as_number: AutonomousSystemNumber, my_ip_addr: Ipv4Addr) -> Self {
+    pub fn new(
+        my_as_number: AutonomousSystemNumber,
+        my_ip_addr: Ipv4Addr,
+    ) -> Self {
         let header = Header::new(29, MessageType::Open);
         Self {
             header,
@@ -93,9 +96,11 @@ mod tests {
 
     #[test]
     fn convert_bytes_to_open_message_and_open_message_to_bytes() {
-        let open_message = OpenMessage::new(64512.into(), "127.0.0.1".parse().unwrap());
+        let open_message =
+            OpenMessage::new(64512.into(), "127.0.0.1".parse().unwrap());
         let open_message_bytes: BytesMut = open_message.clone().into();
-        let open_message2: OpenMessage = open_message_bytes.try_into().unwrap();
+        let open_message2: OpenMessage =
+            open_message_bytes.try_into().unwrap();
 
         assert_eq!(open_message, open_message2);
     }

@@ -1,4 +1,6 @@
-use crate::packets::{keepalive::KeepaliveMessage, open::OpenMessage, update::UpdateMessage};
+use crate::packets::{
+    keepalive::KeepaliveMessage, open::OpenMessage, update::UpdateMessage,
+};
 
 /// BGPの[RFC内 8.1 で定義されているEvent](https://datatracker.ietf.org/doc/html/rfc4271#section-8.1)を
 /// 表す列挙型です。

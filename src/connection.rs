@@ -16,10 +16,14 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub async fn connect(config: &Config) -> Result<Self, CreateConnectionError> {
+    pub async fn connect(
+        config: &Config,
+    ) -> Result<Self, CreateConnectionError> {
         let conn = match config.mode {
             Mode::Active => Self::connect_to_remote_peer(config).await,
-            Mode::Passive => Self::wait_connection_from_remote_peer(config).await,
+            Mode::Passive => {
+                Self::wait_connection_from_remote_peer(config).await
+            }
         }?;
         let buffer = BytesMut::with_capacity(1500);
         Ok(Self { conn, buffer })
@@ -63,10 +67,13 @@ impl Connection {
         loop {
             let mut buf: Vec<u8> = vec![];
             match self.conn.try_read_buf(&mut buf) {
-                Ok(0) => (),                        // TCP ConnectionがCloseされたことを意味している。
+                Ok(0) => (), // TCP ConnectionがCloseされたことを意味している。
                 Ok(n) => self.buffer.put(&buf[..]), // n bytesのデータを受信した。
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => break, // 今readできるデータがないことを意味する。
-                Err(e) => panic!("read data from tcp connectionでエラー{:?}が発生しました", e),
+                Err(e) => panic!(
+                    "read data from tcp connectionでエラー{:?}が発生しました",
+                    e
+                ),
             }
         }
     }
@@ -81,7 +88,9 @@ impl Connection {
             ))
     }
 
-    async fn wait_connection_from_remote_peer(config: &Config) -> Result<TcpStream> {
+    async fn wait_connection_from_remote_peer(
+        config: &Config,
+    ) -> Result<TcpStream> {
         let bgp_port = 179;
         let listener = TcpListener::bind((config.local_ip, bgp_port))
             .await

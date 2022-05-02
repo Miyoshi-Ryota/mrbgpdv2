@@ -15,7 +15,10 @@ impl TryFrom<BytesMut> for KeepaliveMessage {
     fn try_from(bytes: BytesMut) -> Result<Self, Self::Error> {
         let header = Header::try_from(bytes)?;
         if header.type_ != MessageType::Keepalive {
-            return Err(anyhow::anyhow!("bytes列のtypeがkeepaliveではありません。").into());
+            return Err(anyhow::anyhow!(
+                "bytes列のtypeがkeepaliveではありません。"
+            )
+            .into());
         }
         Ok(Self { header })
     }

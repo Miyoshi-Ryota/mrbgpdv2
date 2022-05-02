@@ -1,7 +1,9 @@
 use anyhow::Context;
 use bytes::{BufMut, BytesMut};
 
-use crate::{bgp_type::AutonomousSystemNumber, error::ConvertBytesToBgpMessageError};
+use crate::{
+    bgp_type::AutonomousSystemNumber, error::ConvertBytesToBgpMessageError,
+};
 use std::{collections::BTreeSet, net::Ipv4Addr};
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -43,13 +45,18 @@ impl PathAttribute {
             let attribute_length = if attribute_length_octets == 1 {
                 bytes[i + 2] as usize
             } else {
-                u16::from_be_bytes(bytes[i + 2..i + 4].try_into().context("aaa")?) as usize
+                u16::from_be_bytes(
+                    bytes[i + 2..i + 4].try_into().context("aaa")?,
+                ) as usize
             };
 
-            let attribute_start_index = i + 1 + attribute_length_octets as usize + 1;
+            let attribute_start_index =
+                i + 1 + attribute_length_octets as usize + 1;
             let attribute_end_index = attribute_start_index + attribute_length;
             let path_attribute = match attribute_type_code {
-                1 => PathAttribute::Origin(Origin::try_from(bytes[attribute_start_index])?),
+                1 => PathAttribute::Origin(Origin::try_from(
+                    bytes[attribute_start_index],
+                )?),
                 2 => PathAttribute::AsPath(AsPath::try_from(
                     &bytes[attribute_start_index..attribute_end_index],
                 )?),
@@ -62,7 +69,9 @@ impl PathAttribute {
                     );
                     PathAttribute::NextHop(addr)
                 }
-                _ => PathAttribute::DontKnow(bytes[i..attribute_end_index].to_owned()),
+                _ => PathAttribute::DontKnow(
+                    bytes[i..attribute_end_index].to_owned(),
+                ),
             };
             path_attributes.push(path_attribute);
             i = attribute_end_index;
@@ -241,7 +250,9 @@ impl TryFrom<&[u8]> for AsPath {
                 let mut ases = BTreeSet::new();
                 let mut i = 2;
                 while i < value.len() {
-                    ases.insert(u16::from_be_bytes(value[i..i + 2].try_into()?).into());
+                    ases.insert(
+                        u16::from_be_bytes(value[i..i + 2].try_into()?).into(),
+                    );
                     i += 2;
                 }
                 Ok(AsPath::AsSet(ases))
@@ -250,7 +261,9 @@ impl TryFrom<&[u8]> for AsPath {
                 let mut ases = vec![];
                 let mut i = 2;
                 while i < value.len() {
-                    ases.push(u16::from_be_bytes(value[i..i + 2].try_into()?).into());
+                    ases.push(
+                        u16::from_be_bytes(value[i..i + 2].try_into()?).into(),
+                    );
                     i += 2;
                 }
                 Ok(AsPath::AsSequence(ases))

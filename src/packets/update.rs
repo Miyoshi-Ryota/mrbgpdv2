@@ -33,11 +33,13 @@ impl UpdateMessage {
         withdrawn_routes: Vec<Ipv4Network>,
     ) -> Self {
         let path_attributes_length =
-            path_attributes.iter().map(|p| p.bytes_len()).sum::<usize>() as u16;
-        let network_layer_reachability_information_length = network_layer_reachability_information
-            .iter()
-            .map(|r| r.bytes_len())
-            .sum::<usize>() as u16;
+            path_attributes.iter().map(|p| p.bytes_len()).sum::<usize>()
+                as u16;
+        let network_layer_reachability_information_length =
+            network_layer_reachability_information
+                .iter()
+                .map(|r| r.bytes_len())
+                .sum::<usize>() as u16;
         let withdrawn_routes_length = withdrawn_routes
             .iter()
             .map(|w| w.bytes_len())
@@ -97,7 +99,8 @@ impl TryFrom<BytesMut> for UpdateMessage {
             ))?);
         let withdrawn_routes_end_index = 21 + withdrawn_routes_length as usize;
         let withdrawn_routes_bytes = &bytes[21..withdrawn_routes_end_index];
-        let withdrawn_routes = Ipv4Network::from_u8_slice(withdrawn_routes_bytes)?;
+        let withdrawn_routes =
+            Ipv4Network::from_u8_slice(withdrawn_routes_bytes)?;
 
         let path_attributes_start_index = withdrawn_routes_end_index + 2;
         let total_path_attribute_length = u16::from_be_bytes(
@@ -110,9 +113,12 @@ impl TryFrom<BytesMut> for UpdateMessage {
         );
 
         let path_attributes_bytes = &bytes[path_attributes_start_index
-            ..path_attributes_start_index + total_path_attribute_length as usize];
-        let path_attributes = Arc::new(PathAttribute::from_u8_slice(path_attributes_bytes)?);
-        let nlri_start_index = path_attributes_start_index + total_path_attribute_length as usize;
+            ..path_attributes_start_index
+                + total_path_attribute_length as usize];
+        let path_attributes =
+            Arc::new(PathAttribute::from_u8_slice(path_attributes_bytes)?);
+        let nlri_start_index =
+            path_attributes_start_index + total_path_attribute_length as usize;
         let network_layer_reachability_information =
             Ipv4Network::from_u8_slice(&bytes[nlri_start_index..])?;
 
