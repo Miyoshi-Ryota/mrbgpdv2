@@ -15,8 +15,8 @@ async fn main() {
         acc
     });
     let config = config.trim_end();
-    let configs =
-        vec![Config::from_str(config).expect("引数からConfig構造体の作成に失敗しました。")];
+    let configs = vec![Config::from_str(config)
+        .expect("引数からConfig構造体の作成に失敗しました。")];
 
     tracing_subscriber::fmt::init();
     info!("mrbgpdv2 started with configs {:?}.", configs);

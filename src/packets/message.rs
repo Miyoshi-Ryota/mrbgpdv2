@@ -3,7 +3,9 @@ use std::net::Ipv4Addr;
 use bytes::BytesMut;
 
 use crate::bgp_type::AutonomousSystemNumber;
-use crate::error::{ConvertBgpMessageToBytesError, ConvertBytesToBgpMessageError};
+use crate::error::{
+    ConvertBgpMessageToBytesError, ConvertBytesToBgpMessageError,
+};
 use crate::packets::header::{Header, MessageType};
 use crate::packets::keepalive::KeepaliveMessage;
 use crate::packets::open::OpenMessage;
@@ -24,15 +26,23 @@ impl TryFrom<BytesMut> for Message {
 
         if bytes.len() < header_bytes_length {
             return Err(Self::Error::from(anyhow::anyhow!(
-                "BytesからMessageに変換できませんでした。Bytesの長さが最小の長さより短いです。"
+                "BytesからMessageに変換できませんでした。\
+                 Bytesの長さが最小の長さより短いです。"
             )));
         };
 
-        let header = Header::try_from(BytesMut::from(&bytes[0..header_bytes_length]))?;
+        let header =
+            Header::try_from(BytesMut::from(&bytes[0..header_bytes_length]))?;
         match header.type_ {
-            MessageType::Open => Ok(Message::Open(OpenMessage::try_from(bytes)?)),
-            MessageType::Keepalive => Ok(Message::Keepalive(KeepaliveMessage::try_from(bytes)?)),
-            MessageType::Update => Ok(Message::Update(UpdateMessage::try_from(bytes)?)),
+            MessageType::Open => {
+                Ok(Message::Open(OpenMessage::try_from(bytes)?))
+            }
+            MessageType::Keepalive => {
+                Ok(Message::Keepalive(KeepaliveMessage::try_from(bytes)?))
+            }
+            MessageType::Update => {
+                Ok(Message::Update(UpdateMessage::try_from(bytes)?))
+            }
         }
     }
 }
@@ -48,7 +58,10 @@ impl From<Message> for BytesMut {
 }
 
 impl Message {
-    pub fn new_open(my_as_number: AutonomousSystemNumber, my_ip_addr: Ipv4Addr) -> Self {
+    pub fn new_open(
+        my_as_number: AutonomousSystemNumber,
+        my_ip_addr: Ipv4Addr,
+    ) -> Self {
         Self::Open(OpenMessage::new(my_as_number, my_ip_addr))
     }
 

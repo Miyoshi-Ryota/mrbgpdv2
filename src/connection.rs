@@ -8,7 +8,8 @@ use crate::error::CreateConnectionError;
 use crate::packets::message::Message;
 
 /// 通信に関する処理を担当する構造体です。
-/// TcpConnectionを張ったり、crate::packets::message::Messageのデータを送受信したりします。
+/// TcpConnectionを張ったり、
+/// crate::packets::message::Messageのデータを送受信したりします。
 #[derive(Debug)]
 pub struct Connection {
     conn: TcpStream,
@@ -16,10 +17,14 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub async fn connect(config: &Config) -> Result<Self, CreateConnectionError> {
+    pub async fn connect(
+        config: &Config,
+    ) -> Result<Self, CreateConnectionError> {
         let conn = match config.mode {
             Mode::Active => Self::connect_to_remote_peer(config).await,
-            Mode::Passive => Self::wait_connection_from_remote_peer(config).await,
+            Mode::Passive => {
+                Self::wait_connection_from_remote_peer(config).await
+            }
         }?;
         let buffer = BytesMut::with_capacity(1500);
         Ok(Self { conn, buffer })
@@ -30,7 +35,8 @@ impl Connection {
         self.conn.write_all(&bytes[..]).await;
     }
 
-    /// bgp messageを1つ以上受信していれば最古に受信したMessageをSome<Message>として返す。
+    /// bgp messageを1つ以上受信していれば
+    /// 最古に受信したMessageをSome<Message>として返す。
     /// bgp messageのデータの受信中（半端に受信している）、
     /// ないしは何も受信していない場合はNoneを返す。
     pub async fn get_message(&mut self) -> Option<Message> {
@@ -54,7 +60,10 @@ impl Connection {
     fn get_index_of_message_separator(&self) -> Result<usize> {
         let minimum_message_length = 19;
         if self.buffer.len() < 19 {
-            return Err(anyhow::anyhow!("messageのseparatorを表すデータまでbufferに入っていません。データの受信が半端であることが想定されます。"));
+            return Err(anyhow::anyhow!(
+                "messageのseparatorを表すデータまでbufferに入っていません。\
+                 データの受信が半端であることが想定されます。"
+            ));
         }
         Ok(u16::from_be_bytes([self.buffer[16], self.buffer[17]]) as usize)
     }
@@ -63,10 +72,16 @@ impl Connection {
         loop {
             let mut buf: Vec<u8> = vec![];
             match self.conn.try_read_buf(&mut buf) {
-                Ok(0) => (),                        // TCP ConnectionがCloseされたことを意味している。
-                Ok(n) => self.buffer.put(&buf[..]), // n bytesのデータを受信した。
-                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => break, // 今readできるデータがないことを意味する。
-                Err(e) => panic!("read data from tcp connectionでエラー{:?}が発生しました", e),
+                // TCP ConnectionがCloseされたことを意味している。
+                Ok(0) => (),
+                // n bytesのデータを受信
+                Ok(n) => self.buffer.put(&buf[..]),
+                // 今readできるデータがないことを意味する。
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => break,
+                Err(e) => panic!(
+                    "read data from tcp connectionでエラー{:?}が発生しました",
+                    e
+                ),
             }
         }
     }
@@ -81,7 +96,9 @@ impl Connection {
             ))
     }
 
-    async fn wait_connection_from_remote_peer(config: &Config) -> Result<TcpStream> {
+    async fn wait_connection_from_remote_peer(
+        config: &Config,
+    ) -> Result<TcpStream> {
         let bgp_port = 179;
         let listener = TcpListener::bind((config.local_ip, bgp_port))
             .await

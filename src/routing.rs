@@ -7,7 +7,9 @@ use std::sync::Arc;
 
 use crate::bgp_type::AutonomousSystemNumber;
 use crate::config::Config;
-use crate::error::{ConfigParseError, ConstructIpv4NetworkError, ConvertBytesToBgpMessageError};
+use crate::error::{
+    ConfigParseError, ConstructIpv4NetworkError, ConvertBytesToBgpMessageError,
+};
 use crate::packets::update::UpdateMessage;
 use crate::path_attribute::{AsPath, Origin, PathAttribute};
 use anyhow::{Context, Result};
@@ -81,33 +83,47 @@ impl Ipv4Network {
         }
     }
 
-    pub fn new(addr: Ipv4Addr, prefix: u8) -> Result<Self, ConstructIpv4NetworkError> {
-        let net = ipnetwork::Ipv4Network::new(addr, prefix).context(format!(
-            "Ipv4NetworkをConstruct出来ませんでした。addr: {}, prefix: {}",
-            addr, prefix
-        ))?;
+    pub fn new(
+        addr: Ipv4Addr,
+        prefix: u8,
+    ) -> Result<Self, ConstructIpv4NetworkError> {
+        let net =
+            ipnetwork::Ipv4Network::new(addr, prefix).context(format!(
+                "Ipv4NetworkをConstruct出来ませんでした。addr: {}, prefix: {}",
+                addr, prefix
+            ))?;
         Ok(Self(net))
     }
 
     /// 本来、From Traitを実装するべきだと思うけれど、
     /// Vec<..>に実装するのが、New Type Patternが必要になり
     /// 大変なので変な関連関数を追加することで対応した。
-    pub fn from_u8_slice(bytes: &[u8]) -> Result<Vec<Self>, ConvertBytesToBgpMessageError> {
+    pub fn from_u8_slice(
+        bytes: &[u8],
+    ) -> Result<Vec<Self>, ConvertBytesToBgpMessageError> {
         let mut networks = vec![];
         let mut i = 0;
         while bytes.len() > i {
             let prefix = bytes[i];
             i += 1;
             if prefix == 0 {
-                networks.push(Ipv4Network::new(Ipv4Addr::new(0, 0, 0, 0), prefix).context("")?);
+                networks.push(
+                    Ipv4Network::new(Ipv4Addr::new(0, 0, 0, 0), prefix)
+                        .context("")?,
+                );
             } else if (1..=8).contains(&prefix) {
-                networks
-                    .push(Ipv4Network::new(Ipv4Addr::new(bytes[i], 0, 0, 0), prefix).context("")?);
+                networks.push(
+                    Ipv4Network::new(Ipv4Addr::new(bytes[i], 0, 0, 0), prefix)
+                        .context("")?,
+                );
                 i += 1;
             } else if (9..=16).contains(&prefix) {
                 networks.push(
-                    Ipv4Network::new(Ipv4Addr::new(bytes[i], bytes[i + 1], 0, 0), prefix)
-                        .context("bytes -> Ipv4に変換出来ませんでした。")?,
+                    Ipv4Network::new(
+                        Ipv4Addr::new(bytes[i], bytes[i + 1], 0, 0),
+                        prefix,
+                    )
+                    .context("bytes -> Ipv4に変換出来ませんでした。")?,
                 );
                 i += 2;
             } else if (17..=24).contains(&prefix) {
@@ -122,7 +138,12 @@ impl Ipv4Network {
             } else if (24..=32).contains(&prefix) {
                 networks.push(
                     Ipv4Network::new(
-                        Ipv4Addr::new(bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]),
+                        Ipv4Addr::new(
+                            bytes[i],
+                            bytes[i + 1],
+                            bytes[i + 2],
+                            bytes[i + 3],
+                        ),
                         prefix,
                     )
                     .context("bytes -> Ipv4に変換出来ませんでした。")?,
@@ -213,7 +234,9 @@ impl LocRib {
         let mut routes = handle.route().get(IpVersion::V4).execute();
         let mut results = vec![];
         while let Some(route) = routes.try_next().await? {
-            let destination = if let Some((IpAddr::V4(addr), prefix)) = route.destination_prefix() {
+            let destination = if let Some((IpAddr::V4(addr), prefix)) =
+                route.destination_prefix()
+            {
                 ipnetwork::Ipv4Network::new(addr, prefix)?.into()
             } else {
                 continue;
@@ -290,7 +313,8 @@ impl AdjRibOut {
         local_ip: Ipv4Addr,
         local_as: AutonomousSystemNumber,
     ) -> Vec<UpdateMessage> {
-        let mut hash_map: HashMap<Arc<Vec<PathAttribute>>, Vec<Ipv4Network>> = HashMap::new();
+        let mut hash_map: HashMap<Arc<Vec<PathAttribute>>, Vec<Ipv4Network>> =
+            HashMap::new();
         for entry in self.0.routes() {
             if let Some(routes) = hash_map.get_mut(&entry.path_attributes) {
                 routes.push(entry.network_address);
@@ -304,7 +328,8 @@ impl AdjRibOut {
 
         let mut updates = vec![];
         for (path_attributes, routes) in hash_map.into_iter() {
-            let mut path_attributes = Arc::<Vec<PathAttribute>>::unwrap_or_clone(path_attributes);
+            let mut path_attributes =
+                Arc::<Vec<PathAttribute>>::unwrap_or_clone(path_attributes);
             // PathAttributeを二つ変更する。local ip, as_path add;
             for p in path_attributes.iter_mut() {
                 if let PathAttribute::NextHop(n) = p {
@@ -331,7 +356,11 @@ impl AdjRibIn {
     pub fn new() -> Self {
         Self(Rib::new())
     }
-    pub fn install_from_update(&mut self, update: UpdateMessage, config: &Config) {
+    pub fn install_from_update(
+        &mut self,
+        update: UpdateMessage,
+        config: &Config,
+    ) {
         // ToDo: withdrawnに対応する。
         let path_attributes = update.path_attributes;
         for network in update.network_layer_reachability_information {
@@ -371,10 +400,12 @@ mod tests {
     async fn loclib_can_lookup_routing_table() {
         // 本テストの値は環境によって異なる。
         // 本実装では開発機, テスト実施機に10.200.100.0/24に属するIPが付与されていることを仮定している。
-        let network = ipnetwork::Ipv4Network::new("10.200.100.0".parse().unwrap(), 24)
-            .unwrap()
-            .into();
-        let routes = LocRib::lookup_kernel_routing_table(network).await.unwrap();
+        let network =
+            ipnetwork::Ipv4Network::new("10.200.100.0".parse().unwrap(), 24)
+                .unwrap()
+                .into();
+        let routes =
+            LocRib::lookup_kernel_routing_table(network).await.unwrap();
         let expected = vec![network];
         assert_eq!(routes, expected);
     }
@@ -384,9 +415,10 @@ mod tests {
         // 本テストの値は環境によって異なる。
         // 本実装では開発機, テスト実施機に10.200.100.0/24に属するIPが付与されていることを仮定している。
         // docker-composeした環境のhost2で実行することを仮定している。
-        let config: Config = "64513 10.200.100.3 64512 10.200.100.2 passive 10.100.220.0/24"
-            .parse()
-            .unwrap();
+        let config: Config =
+            "64513 10.200.100.3 64512 10.200.100.2 passive 10.100.220.0/24"
+                .parse()
+                .unwrap();
         let mut loc_rib = LocRib::new(&config).await.unwrap();
         let mut adj_rib_out = AdjRibOut::new();
         adj_rib_out.install_from_loc_rib(&mut loc_rib, &config);
