@@ -110,8 +110,9 @@ impl Connection {
             .accept()
             .await
             .context(format!(
-                "{0}:{1}にてリモートからのTCP Connectionの要求を完遂することが出来ませんでした。
-                リモートからTCP Connectionの要求が来ていない可能性が高いです。",
+                "{0}:{1}にてリモートからの\
+                 TCP Connectionの要求を完遂することが出来ませんでした。\
+                 リモートからTCP Connectionの要求が来ていない可能性が高いです。",
                 config.local_ip, bgp_port
             ))?
             .0)
