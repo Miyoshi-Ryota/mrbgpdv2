@@ -40,7 +40,8 @@ impl PathAttribute {
         let mut i = 0;
         while bytes.len() > i {
             let attribute_flag = bytes[i];
-            let attribute_length_octets = (attribute_flag & 0b00010000) + 1;
+            let attribute_length_octets =
+                ((attribute_flag & 0b00010000) >> 4) + 1;
             let attribute_type_code = bytes[i + 1];
             let attribute_length = if attribute_length_octets == 1 {
                 bytes[i + 2] as usize
