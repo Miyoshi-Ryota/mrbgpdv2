@@ -137,10 +137,9 @@ impl TryFrom<BytesMut> for UpdateMessage {
 
 #[cfg(test)]
 mod tests {
-    use crate::{bgp_type::AutonomousSystemNumber, routing::Rib};
-
     use super::*;
 
+    #[tokio::test]
     async fn update_message_from_adj_rib_out() {
         // 本テストの値は環境によって異なる。
         // 本実装では開発機, テスト実施機に10.200.100.0/24に属するIPが付与されていることを仮定している。
@@ -180,5 +179,30 @@ mod tests {
             adj_rib_out.create_update_messages(local_ip, local_as),
             vec![expected_update_message]
         );
+    }
+
+    #[test]
+    fn convert_bytes_to_update_message_and_update_message_to_bytes() {
+        let some_as: AutonomousSystemNumber = 64513.into();
+        let some_ip: Ipv4Addr = "10.0.100.3".parse().unwrap();
+
+        let local_as: AutonomousSystemNumber = 64514.into();
+        let local_ip: Ipv4Addr = "10.200.100.3".parse().unwrap();
+
+        let update_message_path_attributes = Arc::new(vec![
+            PathAttribute::Origin(Origin::Igp),
+            PathAttribute::AsPath(AsPath::AsSequence(vec![some_as, local_as])),
+            PathAttribute::NextHop(local_ip),
+        ]);
+
+        let update_message = UpdateMessage::new(
+            update_message_path_attributes,
+            vec!["10.100.220.0/24".parse().unwrap()],
+            vec![],
+        );
+
+        let update_message_bytes: BytesMut = update_message.clone().into();
+        let update_message2: UpdateMessage = update_message_bytes.try_into().unwrap();
+        assert_eq!(update_message, update_message2);
     }
 }
