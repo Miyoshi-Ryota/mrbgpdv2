@@ -326,13 +326,10 @@ impl AdjRibOut {
     /// LocRibから必要なルートをインストールする。
     /// この時、Remote AS番号が含まれているルートはインストールしない。
     pub fn install_from_loc_rib(&mut self, loc_rib: &LocRib, config: &Config) {
-        for r in loc_rib
+        loc_rib
             .routes()
             .filter(|entry| !entry.does_contain_as(config.remote_as))
-        {
-            let mut route = Arc::clone(&r);
-            self.insert(route);
-        }
+            .for_each(|r| self.insert(Arc::clone(r)));
     }
 
     /// AdjRibOutからUpdateMessageに変換する。
