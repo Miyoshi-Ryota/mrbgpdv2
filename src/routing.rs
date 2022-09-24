@@ -195,8 +195,22 @@ impl Rib {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LocRib {
-    pub rib: Rib,
+    rib: Rib,
     local_as_number: AutonomousSystemNumber,
+}
+
+impl Deref for LocRib {
+    type Target = Rib;
+
+    fn deref(&self) -> &Self::Target {
+        &self.rib
+    }
+}
+
+impl DerefMut for LocRib {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.rib
+    }
 }
 
 impl LocRib {
@@ -255,17 +269,19 @@ impl LocRib {
     /// この時、自ASが含まれているルートはインストールしない。
     /// 参考: 9.1.2.  Phase 2: Route Selection in RFC4271.
     pub fn install_from_adj_rib_in(&mut self, adj_rib_in: &AdjRibIn) {
+        // closure内にselfを2回captureされて、借用チェックによるエラーを避けるため。
+        let local_as = self.local_as_number;
+
         adj_rib_in
-            .0
             .routes()
-            .filter(|entry| !entry.does_contain_as(self.local_as_number))
-            .for_each(|entry| self.rib.insert(Arc::clone(&entry)));
+            .filter(|entry| !entry.does_contain_as(local_as))
+            .for_each(|entry| self.insert(Arc::clone(&entry)));
     }
 
     pub async fn write_to_kernel_routing_table(&self) -> Result<()> {
         let (connection, handle, _) = new_connection()?;
         tokio::spawn(connection);
-        for e in self.rib.routes() {
+        for e in self.routes() {
             for p in e.path_attributes.iter() {
                 if let PathAttribute::NextHop(gateway) = p {
                     let dest = e.network_address;
@@ -286,7 +302,21 @@ impl LocRib {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct AdjRibOut(pub Rib);
+pub struct AdjRibOut(Rib);
+
+impl Deref for AdjRibOut {
+    type Target = Rib;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for AdjRibOut {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl AdjRibOut {
     pub fn new() -> Self {
@@ -297,12 +327,11 @@ impl AdjRibOut {
     /// この時、Remote AS番号が含まれているルートはインストールしない。
     pub fn install_from_loc_rib(&mut self, loc_rib: &LocRib, config: &Config) {
         for r in loc_rib
-            .rib
             .routes()
             .filter(|entry| !entry.does_contain_as(config.remote_as))
         {
             let mut route = Arc::clone(&r);
-            self.0.insert(route);
+            self.insert(route);
         }
     }
 
@@ -315,7 +344,7 @@ impl AdjRibOut {
     ) -> Vec<UpdateMessage> {
         let mut hash_map: HashMap<Arc<Vec<PathAttribute>>, Vec<Ipv4Network>> =
             HashMap::new();
-        for entry in self.0.routes() {
+        for entry in self.routes() {
             if let Some(routes) = hash_map.get_mut(&entry.path_attributes) {
                 routes.push(entry.network_address);
             } else {
@@ -351,7 +380,22 @@ impl AdjRibOut {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct AdjRibIn(pub Rib);
+pub struct AdjRibIn(Rib);
+
+impl Deref for AdjRibIn {
+    type Target = Rib;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for AdjRibIn {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 impl AdjRibIn {
     pub fn new() -> Self {
         Self(Rib::new())
@@ -369,7 +413,7 @@ impl AdjRibIn {
                 path_attributes: Arc::clone(&path_attributes),
             });
             // PathAttributesが変わってたらインストールする必要がある。
-            self.0.insert(rib_entry);
+            self.insert(rib_entry);
         }
     }
 }

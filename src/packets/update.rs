@@ -6,6 +6,7 @@ use crate::routing::Ipv4Network;
 use anyhow::Context;
 use bytes::{BufMut, BytesMut};
 
+use crate::bgp_type::AutonomousSystemNumber;
 use crate::error::ConvertBytesToBgpMessageError;
 use crate::packets::header::Header;
 use crate::path_attribute::{AsPath, Origin, PathAttribute};
@@ -162,14 +163,13 @@ mod tests {
             PathAttribute::AsPath(AsPath::AsSequence(vec![some_as, local_as])),
             PathAttribute::NextHop(local_ip),
         ]);
-        let mut rib = Rib::new();
+        let mut adj_rib_out = AdjRibOut::new();
 
-        rib.insert(Arc::new(RibEntry {
+        adj_rib_out.insert(Arc::new(RibEntry {
             network_address: "10.100.220.0/24".parse().unwrap(),
             path_attributes: rib_path_attributes,
         }));
 
-        let adj_rib_out = AdjRibOut(rib);
         let expected_update_message = UpdateMessage::new(
             update_message_path_attributes,
             vec!["10.100.220.0/24".parse().unwrap()],

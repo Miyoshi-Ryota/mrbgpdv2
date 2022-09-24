@@ -149,10 +149,10 @@ impl Peer {
                          to adj_rib_out: {:?}.",
                         self.adj_rib_out
                     );
-                    if self.adj_rib_out.0.does_contain_new_route() {
+                    if self.adj_rib_out.does_contain_new_route() {
                         debug!("adj_rib_out is updated.");
                         self.event_queue.enqueue(Event::AdjRibOutChanged);
-                        self.adj_rib_out.0.update_to_all_unchanged();
+                        self.adj_rib_out.update_to_all_unchanged();
                     }
                 }
                 Event::AdjRibOutChanged => {
@@ -181,10 +181,10 @@ impl Peer {
                          to adj_rib_in: {:?}.",
                         self.adj_rib_in
                     );
-                    if self.adj_rib_in.0.does_contain_new_route() {
+                    if self.adj_rib_in.does_contain_new_route() {
                         debug!("adj_rib in is updated.");
                         self.event_queue.enqueue(Event::AdjRibInChanged);
-                        self.adj_rib_in.0.update_to_all_unchanged();
+                        self.adj_rib_in.update_to_all_unchanged();
                     }
                 }
                 Event::AdjRibInChanged => {
@@ -201,7 +201,7 @@ impl Peer {
                         "after install routes from adj_rib to loc_rib: {:?}.",
                         self.loc_rib.lock().await
                     );
-                    if self.loc_rib.lock().await.rib.does_contain_new_route() {
+                    if self.loc_rib.lock().await.does_contain_new_route() {
                         info!("loc_rib is updated.");
                         self.loc_rib
                             .lock()
