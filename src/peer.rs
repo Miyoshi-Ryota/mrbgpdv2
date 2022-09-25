@@ -209,11 +209,7 @@ impl Peer {
                             .write_to_kernel_routing_table()
                             .await;
                         self.event_queue.enqueue(Event::LocRibChanged);
-                        self.loc_rib
-                            .lock()
-                            .await
-                            .rib
-                            .update_to_all_unchanged();
+                        self.loc_rib.lock().await.update_to_all_unchanged();
                     }
                 }
                 _ => {}
