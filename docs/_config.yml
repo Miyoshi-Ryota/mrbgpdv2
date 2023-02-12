@@ -1,2 +1,8 @@
+---
+layout: default
 markdown: kramdown
 theme: minima
+highlighter: rouge
+title: mrbgpdv2
+description: 作って学ぶルーティングプロトコル　RustでBGPを実装 サポートページ
+---

@@ -1,8 +1,13 @@
-# 作って学ぶルーティングプロトコル　RustでBGPを実装 サポートページ
+---
+title: 作って学ぶルーティングプロトコル　RustでBGPを実装 サポートページ
+---
+
+## 概要
 
 本ページは商業誌版　[作って学ぶルーティングプロトコル　RustでBGPを実装](https://nextpublishing.jp/book/15905.html)のサポートページです。正誤表を記載します。本ページに記載のページ番号は全て物理本・PDF版のもので、Kindle版などではページ番号が異なる可能性があります。
 
 ## 目次
+
 * toc
 {:toc}
 
@@ -91,7 +96,7 @@ mod tests {
              },
 ```
 
-P.56, P.62, P.65などのサンプルコードでは同様のメソッド内のmatch式の`State::Connect`の枝は以下のように記載されており、P.50で追加したOpen Messageの送信の処理が消えています。
+P.56, P.62, P.65などのサンプルコードでは同様のメソッド内のmatch式の`State::Connect`の枝は以下のように記載されており、P.50で追加したOpen Messageの送信の処理が消えております。これは誤りで、P.56でOpenMessageの送信処理を消すことを意図したものではありません。
 
 ```Rust
      async fn handle_event(&mut self, event: Event) {
