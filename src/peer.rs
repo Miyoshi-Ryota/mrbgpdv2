@@ -226,7 +226,7 @@ mod tests {
     #[tokio::test]
     async fn peer_can_transition_to_connect_state() {
         let config: Config =
-            "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
+            "64512 127.0.0.1 64513 127.0.0.2 active".parse().unwrap();
         let loc_rib =
             Arc::new(Mutex::new(LocRib::new(&config).await.unwrap()));
         let mut peer = Peer::new(config, Arc::clone(&loc_rib));
@@ -236,7 +236,7 @@ mod tests {
         // これはネットワーク上で離れた別のマシンを模擬しています。
         tokio::spawn(async move {
             let remote_config =
-                "64513 127.0.0.2 65412 127.0.0.1 passive".parse().unwrap();
+                "64513 127.0.0.2 64512 127.0.0.1 passive".parse().unwrap();
             let remote_loc_rib = Arc::new(Mutex::new(
                 LocRib::new(&remote_config).await.unwrap(),
             ));
@@ -255,7 +255,7 @@ mod tests {
     #[tokio::test]
     async fn peer_can_transition_to_open_sent_state() {
         let config: Config =
-            "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
+            "64512 127.0.0.1 64513 127.0.0.2 active".parse().unwrap();
         let loc_rib =
             Arc::new(Mutex::new(LocRib::new(&config).await.unwrap()));
         let mut peer = Peer::new(config, Arc::clone(&loc_rib));
@@ -265,7 +265,7 @@ mod tests {
         // これはネットワーク上で離れた別のマシンを模擬しています。
         tokio::spawn(async move {
             let remote_config =
-                "64513 127.0.0.2 65412 127.0.0.1 passive".parse().unwrap();
+                "64513 127.0.0.2 64512 127.0.0.1 passive".parse().unwrap();
             let remote_loc_rib = Arc::new(Mutex::new(
                 LocRib::new(&remote_config).await.unwrap(),
             ));
@@ -286,7 +286,7 @@ mod tests {
     #[tokio::test]
     async fn peer_can_transition_to_open_confirm_state() {
         let config: Config =
-            "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
+            "64512 127.0.0.1 64513 127.0.0.2 active".parse().unwrap();
         let loc_rib =
             Arc::new(Mutex::new(LocRib::new(&config).await.unwrap()));
         let mut peer = Peer::new(config, Arc::clone(&loc_rib));
@@ -296,7 +296,7 @@ mod tests {
         // これはネットワーク上で離れた別のマシンを模擬しています。
         tokio::spawn(async move {
             let remote_config =
-                "64513 127.0.0.2 65412 127.0.0.1 passive".parse().unwrap();
+                "64513 127.0.0.2 64512 127.0.0.1 passive".parse().unwrap();
             let remote_loc_rib = Arc::new(Mutex::new(
                 LocRib::new(&remote_config).await.unwrap(),
             ));
@@ -329,7 +329,7 @@ mod tests {
     #[tokio::test]
     async fn peer_can_transition_to_established_state() {
         let config: Config =
-            "64512 127.0.0.1 65413 127.0.0.2 active".parse().unwrap();
+            "64512 127.0.0.1 64513 127.0.0.2 active".parse().unwrap();
         let loc_rib =
             Arc::new(Mutex::new(LocRib::new(&config).await.unwrap()));
         let mut peer = Peer::new(config, Arc::clone(&loc_rib));
@@ -339,7 +339,7 @@ mod tests {
         // これはネットワーク上で離れた別のマシンを模擬しています。
         tokio::spawn(async move {
             let remote_config =
-                "64513 127.0.0.2 65412 127.0.0.1 passive".parse().unwrap();
+                "64513 127.0.0.2 64512 127.0.0.1 passive".parse().unwrap();
             let remote_loc_rib = Arc::new(Mutex::new(
                 LocRib::new(&remote_config).await.unwrap(),
             ));
